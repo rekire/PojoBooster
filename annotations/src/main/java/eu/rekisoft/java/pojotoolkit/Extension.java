@@ -1,5 +1,9 @@
 package eu.rekisoft.java.pojotoolkit;
 
+import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.TypeName;
+
 import java.util.List;
 
 import javax.annotation.processing.RoundEnvironment;
@@ -10,18 +14,18 @@ import javax.annotation.processing.RoundEnvironment;
  * @author René Kilczan
  */
 public abstract class Extension {
-    protected final String className;
+    protected final TypeName className;
 
-    public Extension(String className) {
+    public Extension(TypeName className) {
         this.className = className;
     }
 
-    public abstract List<Class<?>> getAttentionalInterfaces();
+    public abstract List<TypeName> getAttentionalInterfaces();
 
     //@NonNull
-    public abstract List<Class<?>> getAttentionalImports();
+    public abstract List<TypeName> getAttentionalImports();
 
-    public abstract String generateCode(String filter, RoundEnvironment environment);
+    public abstract List<MethodSpec> generateCode(String filter, RoundEnvironment environment);
 
-    public abstract String generateMembers();
+    public abstract List<FieldSpec> generateMembers();
 }

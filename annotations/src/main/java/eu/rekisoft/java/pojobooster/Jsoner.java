@@ -1,5 +1,9 @@
 package eu.rekisoft.java.pojobooster;
 
+import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.TypeName;
+
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -20,22 +24,24 @@ import eu.rekisoft.java.pojotoolkit.Field;
  */
 public class Jsoner extends Extension {
 
-    public Jsoner(String className) {
+    public Jsoner(TypeName className) {
         super(className);
     }
 
     @Override
-    public List<Class<?>> getAttentionalInterfaces() {
+    public List<TypeName> getAttentionalInterfaces() {
         return new ArrayList<>(0);
     }
 
     @Override
-    public List<Class<?>> getAttentionalImports() {
+    public List<TypeName> getAttentionalImports() {
         return new ArrayList<>(0);
     }
 
     @Override
-    public String generateCode(String filter, RoundEnvironment environment) {
+    public List<MethodSpec> generateCode(String filter, RoundEnvironment environment) {
+        return new ArrayList<>(0);
+        /*
         StringBuilder sb = new StringBuilder();
         String newLine = "\n            ";
         sb.append("    public String toJSON() {").append(newLine);
@@ -69,6 +75,7 @@ public class Jsoner extends Extension {
         //sb.newLine();
 
             return sb.toString();
+            */
     }
 
 
@@ -115,7 +122,7 @@ public class Jsoner extends Extension {
     }
 
     @Override
-    public String generateMembers() {
-        return null;
+    public List<FieldSpec> generateMembers() {
+        return new ArrayList<>(0);
     }
 }

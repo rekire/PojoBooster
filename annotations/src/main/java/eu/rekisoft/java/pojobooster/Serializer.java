@@ -1,11 +1,17 @@
 package eu.rekisoft.java.pojobooster;
 
+import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.TypeName;
+
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.Modifier;
 
 import eu.rekisoft.java.pojotoolkit.Extension;
 
@@ -17,22 +23,22 @@ import eu.rekisoft.java.pojotoolkit.Extension;
 public class Serializer extends Extension {
     private long hash;
 
-    public Serializer(String className) {
+    public Serializer(TypeName className) {
         super(className);
     }
 
     @Override
-    public List<Class<?>> getAttentionalInterfaces() {
-        return Collections.singletonList(Serializable.class);
+    public List<TypeName> getAttentionalInterfaces() {
+        return Collections.singletonList(TypeName.get(Serializable.class));
     }
 
     @Override
-    public List<Class<?>> getAttentionalImports() {
-        return Collections.singletonList(Serializable.class);
+    public List<TypeName> getAttentionalImports() {
+        return Collections.singletonList(TypeName.get(Serializable.class));
     }
 
     @Override
-    public String generateCode(String target, RoundEnvironment environment) {
+    public List<MethodSpec> generateCode(String target, RoundEnvironment environment) {
         System.out.println("Serializer processes " + target + "...");
         String hashInfo = target;
         for(Element elem : environment.getElementsAnnotatedWith(eu.rekisoft.java.pojotoolkit.Field.class)) {
@@ -49,11 +55,15 @@ public class Serializer extends Extension {
             }
         }
         hash = hashInfo.hashCode();
-        return null;
+        return new ArrayList<>(0);
     }
 
     @Override
-    public String generateMembers() {
-        return "private static final long serialVersionUID = " + hash + "L;";
+    public List<FieldSpec> generateMembers() {
+        return Collections.singletonList(
+                FieldSpec.builder(TypeName.get(long.class), "serialVersionUID")
+                        .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
+                        .initializer(hash + "L")
+                        .build());
     }
 }

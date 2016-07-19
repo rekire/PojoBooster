@@ -2,6 +2,13 @@ package eu.rekisoft.java.pojobooster;
 
 import android.annotation.TargetApi;
 
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.JavaFile;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.TypeName;
+import com.squareup.javapoet.TypeSpec;
+
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -133,14 +140,14 @@ public class Preprocessor extends AbstractProcessor {
 
     private void processSingle(AnnotationMirror annotationMirror, TypeElement type, RoundEnvironment roundEnv) {
         //System.out.println(annotationMirror.getAnnotationType().asElement().asType().toString());
-        String generatedCode = "";
-        String members = "";
         CharSequence simpleBaseName = type.getSimpleName();
         String targetName = simpleBaseName.toString();
         CharSequence fullBaseName = type.getQualifiedName();
         CharSequence packageName = type.getQualifiedName().subSequence(0, fullBaseName.length() - simpleBaseName.length() - 1);
-        HashSet<Class<?>> imports = new HashSet<>();
-        HashSet<Class<?>> interfaces = new HashSet<>();
+        HashSet<TypeName> imports = new HashSet<>();
+        HashSet<TypeName> interfaces = new HashSet<>();
+        List<MethodSpec> methods = new ArrayList<>();
+        List<FieldSpec> members = new ArrayList<>();
 
         for(Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : annotationMirror.getElementValues().entrySet()) {
             if("extensions".equals(entry.getKey().getSimpleName().toString())) {
@@ -150,18 +157,12 @@ public class Preprocessor extends AbstractProcessor {
                     DeclaredType extensionType = (DeclaredType)extension.getValue();
                     System.out.println(extensionType.toString());
                     try {
-                        Extension impl = (Extension)Class.forName(extensionType.toString()).getDeclaredConstructor(String.class).newInstance(targetName);
+                        Extension impl = (Extension)Class.forName(extensionType.toString()).getDeclaredConstructor(TypeName.class).newInstance(ClassName.bestGuess(targetName));
                         //System.out.println("Yey!");
-                        String extensionCode = impl.generateCode(type.getQualifiedName().toString(), roundEnv);
-                        String memberCode = impl.generateMembers();
+                        methods.addAll(impl.generateCode(type.getQualifiedName().toString(), roundEnv));
+                        members.addAll(impl.generateMembers());
                         imports.addAll(impl.getAttentionalImports());
                         interfaces.addAll(impl.getAttentionalInterfaces());
-                        if(memberCode != null) {
-                            members += memberCode.trim() + System.lineSeparator();
-                        }
-                        if(extensionCode != null) {
-                            generatedCode += extensionCode.trim() + System.lineSeparator();
-                        }
                     } catch(ReflectiveOperationException e) {
                         e.printStackTrace();
                     }
@@ -174,49 +175,27 @@ public class Preprocessor extends AbstractProcessor {
             //System.out.println(entry.getKey().getSimpleName() + ": " + entry.getValue().getValue());
         }
 
+        TypeSpec.Builder generated = TypeSpec.classBuilder(targetName).addModifiers(Modifier.PUBLIC);
+        for(TypeName anInterface : interfaces) {
+            generated.addSuperinterface(anInterface);
+        }
+        for(FieldSpec member : members) {
+            generated.addField(member);
+        }
+        for(MethodSpec method : methods) {
+            generated.addMethod(method);
+        }
+
+        JavaFile javaFile = JavaFile.builder(packageName.toString(), generated.build()).indent("    ").build();
+
+
         try {
             JavaFileObject jfo = processingEnv.getFiler().createSourceFile(packageName + "." + targetName);
             BufferedWriter bw = new BufferedWriter(jfo.openWriter());
             bw.append("// This file is generated. Wohoo!");
             bw.newLine();
             bw.newLine();
-            bw.append("package ").append(packageName).append(";");
-            bw.newLine();
-            bw.newLine();
-            if(!imports.isEmpty()) {
-                for(Class<?> anImport : imports) {
-                    bw.append("import ").append(anImport.getName()).append(";");
-                    bw.newLine();
-                }
-            }
-            bw.newLine();
-            //printModifies(bw, classElement.getModifiers());
-            bw.append("public class ").append(targetName).append(" extends ").append(simpleBaseName);
-            if(!interfaces.isEmpty()) {
-                bw.append(" implements ");
-                boolean first = true;
-                for(Class<?> anInterface : interfaces) {
-                    if(first) {
-                        first = false;
-                    } else {
-                        bw.append(", ");
-                    }
-                    bw.append(anInterface.getSimpleName());
-                }
-            }
-            bw.append(" {");
-            bw.newLine();
-            if(!members.isEmpty()) {
-                bw.append(members);
-                bw.newLine();
-            }
-            if(!generatedCode.isEmpty()) {
-                bw.append(generatedCode);
-                bw.newLine();
-            }
-            bw.newLine();
-            //addJSON(bw, entry.getValue());
-            bw.append("}");
+            bw.append(javaFile.toString().trim());
             bw.flush();
             bw.close();
         } catch(IOException e) {
