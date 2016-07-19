@@ -4,19 +4,15 @@ import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeName;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.Element;
-import javax.lang.model.element.TypeElement;
-import javax.tools.JavaFileObject;
+import javax.lang.model.element.Modifier;
 
-import eu.rekisoft.java.pojotoolkit.*;
+import eu.rekisoft.java.pojotoolkit.Extension;
 import eu.rekisoft.java.pojotoolkit.Field;
 
 /**
@@ -40,84 +36,65 @@ public class Jsoner extends Extension {
 
     @Override
     public List<MethodSpec> generateCode(String filter, RoundEnvironment environment) {
-        return new ArrayList<>(0);
-        /*
-        StringBuilder sb = new StringBuilder();
-        String newLine = "\n            ";
-        sb.append("    public String toJSON() {").append(newLine);
-        sb.append("StringBuilder sb = new StringBuilder(\"{\")").append(newLine);
-        boolean first = true;
+        MethodSpec.Builder method = MethodSpec
+                .methodBuilder("toJSON")
+                .addModifiers(Modifier.PUBLIC)
+                .returns(String.class);
+        method.addStatement("StringBuilder sb = new StringBuilder(\"{\")");
+        String delimiter = "";
         for(Element elem : environment.getElementsAnnotatedWith(eu.rekisoft.java.pojotoolkit.Field.class)) {
             if(elem.getEnclosingElement().asType().toString().equals(filter)) {
                 eu.rekisoft.java.pojotoolkit.Field field = elem.getAnnotation(eu.rekisoft.java.pojotoolkit.Field.class);
-                //bw.append("// ")
-                if (first) {
-                    first = false;
+                String fieldName;
+                if(field.value().isEmpty()) {
+                    fieldName = elem.getSimpleName().toString();
                 } else {
-                    sb.append("sb.append(\", \")");
+                    fieldName = field.value();
                 }
-                sb.append(".append(\"\\\"");
-                if (field.value().isEmpty()) {
-                    sb.append(elem.getSimpleName());
-                } else {
-                    sb.append(field.value());
+                method.addStatement("sb.append(\"$L\\\"$L\\\":\")", delimiter, fieldName);
+                if(delimiter.isEmpty()) {
+                    delimiter = ", ";
                 }
+
                 // TODO add type safety
-                sb.append("\\\":\")");
-                addElementToJson(sb, elem, field);
-                //bw.append("\"").append(elem.getSimpleName());
-                //bw.append(newLine);
+                addElementToJson(method, elem, field);
             }
         }
-        sb.append("return sb.append(\"}\").toString();\n");
-        //sb.newLine();
-        sb.append("    }");
-        //sb.newLine();
-
-            return sb.toString();
-            */
+        method.addStatement("return sb.toString()");
+        return Collections.singletonList(method.build());
     }
 
-
-    private void addElementToJson(StringBuilder sb, Element elem, Field annotation) {//} throws IOException {
+    private void addElementToJson(MethodSpec.Builder method, Element elem, Field annotation) {//} throws IOException {
         if(!elem.asType().getKind().isPrimitive()) {
-            sb.append(";\n        if(").append(elem.getSimpleName()).append(" == null) {\n" +
-                    "            sb.append(\"null\");\n" +
-                    "        } else {\n" +
-                    "            sb.append(");
-        } else {
-            sb.append("\n            .append(");
+            method.beginControlFlow("if($L == null)", elem.getSimpleName())
+                    .addStatement("sb.append(\"null\")")
+                    .nextControlFlow("else");
         }
         switch(elem.asType().getKind()) {
-            case BOOLEAN:
-            case SHORT:
-            case INT:
-            case LONG:
-            case FLOAT:
-            case DOUBLE:
-                sb.append(elem.getSimpleName());
-                break;
-            case BYTE:
-                sb.append("Integer.toHexString(")
-                        .append(elem.getSimpleName())
-                        .append(")");
-                break;
-            case ARRAY:
-                // TODO
-                break;
-            default:
-                sb.append("'\"').append(").append(elem.getSimpleName());
-                //elem.as
-                //processingEnv.getTypeUtils().asElement(elem.asType())
-                //bw.append("/*").append(elem.getClass().getName()).append("*/");
-                if(!String.class.getName().equals(elem.asType().toString()))
-                sb.append(".toString()");
-                sb.append(").append('\"'");
+        case BOOLEAN:
+        case SHORT:
+        case INT:
+        case LONG:
+        case FLOAT:
+        case DOUBLE:
+            method.addStatement("sb.append($L)", elem.getSimpleName());
+            break;
+        case BYTE:
+            method.addStatement("sb.append(Integer.toHexString($L))", elem.getSimpleName());
+            break;
+        case ARRAY:
+            // TODO
+            break;
+        default:
+            // TODO check if method has a toJson() method
+            if(!String.class.getName().equals(elem.asType().toString())) {
+                method.addStatement("sb.append('\"').append($L.toString()).append('\"')", elem.getSimpleName());
+            } else {
+                method.addStatement("sb.append($L)", elem.getSimpleName());
+            }
         }
         if(!elem.asType().getKind().isPrimitive()) {
-            sb.append(");\n        }\n        ");
-        } else {
-            sb.append(");\n        ");
+            method.endControlFlow();
         }
     }
 

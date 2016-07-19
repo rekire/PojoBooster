@@ -175,7 +175,10 @@ public class Preprocessor extends AbstractProcessor {
             //System.out.println(entry.getKey().getSimpleName() + ": " + entry.getValue().getValue());
         }
 
-        TypeSpec.Builder generated = TypeSpec.classBuilder(targetName).addModifiers(Modifier.PUBLIC);
+        TypeSpec.Builder generated = TypeSpec
+                .classBuilder(targetName)
+                .addModifiers(Modifier.PUBLIC)
+                .superclass(ClassName.bestGuess(type.getQualifiedName().toString()));
         for(TypeName anInterface : interfaces) {
             generated.addSuperinterface(anInterface);
         }
