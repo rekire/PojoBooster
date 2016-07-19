@@ -1,0 +1,53 @@
+apply plugin:'java'
+//apply plugin:'com.android.application'
+//apply plugin: 'com.neenbedankt.android-apt'
+apply plugin: 'com.ewerk.gradle.plugins.annotation-processor'
+
+//noinspection GroovyAssignabilityCheck
+jar {
+    manifest {
+        attributes 'Manifest-Version': '1.0',
+                'Main-Class': 'eu.rekisoft.java.pojobooster.Test'
+    }
+}
+
+configurations {
+    provided
+    compile.extendsFrom provided
+}
+sourceSets {
+    main { compileClasspath += configurations.provided }
+}
+
+//noinspection GroovyAssignabilityCheck
+dependencies {
+    compile project(':annotations')
+    //apt project(':annotations')
+    provided 'com.google.android:android:4.1.1.4'
+    provided 'com.google.android:annotations:4.1.1.4'
+    provided 'com.android.databinding:baseLibrary:2.2.0-alpha5'
+}
+
+annotationProcessor {
+    library project(':annotations')
+    processor "eu.rekisoft.java.pojobooster.Preprocessor"
+    sourcesDir "src/generated/java"
+    //sourcesDir "build/generated/source/beans"
+}
+
+/*
+task generateBeans(type: JavaCompile, group: 'build', description: 'Generates the Bean types') {
+    source = sourceSets.main.java // input source set
+    //println configurations.getClass().getName()
+    println configurations.compile
+    //println 'dump :' + configurations.dump()
+    classpath = configurations.compile //+ configurations.annotations // add processor module to classpath
+    // specify javac arguments
+    options.compilerArgs = [
+            "-proc:only",
+            "-processor", "eu.rekisoft.java.pojobooster.Preprocessor"
+    ]
+    // specify output of generated code
+    destinationDir = sourceSets.generated.java.srcDirs.iterator().next()
+}
+//*/
