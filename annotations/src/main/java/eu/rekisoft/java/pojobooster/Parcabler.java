@@ -21,6 +21,9 @@ import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
+import javax.lang.model.type.ArrayType;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
 import eu.rekisoft.java.pojotoolkit.Extension;
@@ -68,20 +71,60 @@ public class Parcabler extends Extension {
                 .returns(int.class)
                 .addStatement("return 0")
                 .build());
-        methods.add(MethodSpec.methodBuilder("writeToParcel")
+        MethodSpec.Builder writeToParcel = MethodSpec.methodBuilder("writeToParcel")
                 .addAnnotation(Override.class)
                 .addModifiers(Modifier.PUBLIC)
                 .addParameter(Parcel.class, "dest")
-                .addParameter(int.class, "flags")
-                // TODO add missing statments
-                // .addStatement("")
-                .build());
-        methods.add(MethodSpec.constructorBuilder()
+                .addParameter(int.class, "flags");
+        for(Map.Entry<TypeMirror, Name> field : fields.entrySet()) {
+            TypeKind fieldKind = field.getKey().getKind();
+            String suffix = "";
+            if(fieldKind == TypeKind.ARRAY) {
+                suffix = "Array";
+                fieldKind = ((ArrayType)field.getKey()).getComponentType().getKind();
+            }
+            String type = null;
+            switch(fieldKind) {
+            case BOOLEAN:
+                writeToParcel.addStatement("dest.writeByte($L ? 0 : 1)", field.getValue());
+                continue;
+            case SHORT:
+            case INT:
+                type = "Int";
+                break;
+            case LONG:
+                type = "Long";
+                break;
+            case FLOAT:
+                type = "Float";
+                break;
+            case DOUBLE:
+                type = "Double";
+                break;
+            case BYTE:
+                type = "Byte";
+                break;
+            case ERROR:
+                // TODO check if the we generate this class
+            case DECLARED:
+                type = "Value";
+                Element element = ((DeclaredType)field.getKey()).asElement();
+                if(String.class.getName().equals(element.toString())) {
+                    type = "String";
+                }
+                System.out.println(((DeclaredType)field.getKey()).asElement());
+                break;
+            case ARRAY:
+            default:
+                throw new RuntimeException("Not supported! " + fieldKind.name() + " " + field.getValue());
+            }
+            writeToParcel.addStatement("dest.write$L$L($L)", type, suffix, field.getValue());
+        }
+        methods.add(writeToParcel.build());
+        MethodSpec.Builder constructor = MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PUBLIC)
-                .addParameter(Parcel.class, "in")
-                // TODO add missing statments
-                // .addStatement("this.id = in.readInt();")
-                .build());
+                .addParameter(Parcel.class, "in");
+        methods.add(constructor.build());
         return methods;
     }
 
