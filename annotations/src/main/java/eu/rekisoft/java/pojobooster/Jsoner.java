@@ -30,11 +30,6 @@ public class Jsoner extends Extension {
     }
 
     @Override
-    public List<TypeName> getAttentionalImports() {
-        return new ArrayList<>(0);
-    }
-
-    @Override
     public List<MethodSpec> generateCode(String filter, RoundEnvironment environment) {
         MethodSpec.Builder method = MethodSpec
                 .methodBuilder("toJSON")

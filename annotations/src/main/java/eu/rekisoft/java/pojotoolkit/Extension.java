@@ -22,9 +22,6 @@ public abstract class Extension {
 
     public abstract List<TypeName> getAttentionalInterfaces();
 
-    //@NonNull
-    public abstract List<TypeName> getAttentionalImports();
-
     public abstract List<MethodSpec> generateCode(String filter, RoundEnvironment environment);
 
     public abstract List<FieldSpec> generateMembers();

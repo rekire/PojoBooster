@@ -47,11 +47,6 @@ public class Parcabler extends Extension {
     }
 
     @Override
-    public List<TypeName> getAttentionalImports() {
-        return classes;
-    }
-
-    @Override
     public List<MethodSpec> generateCode(String filter, RoundEnvironment environment) {
         for(Element elem : environment.getElementsAnnotatedWith(eu.rekisoft.java.pojotoolkit.Field.class)) {
             if(elem.getEnclosingElement().asType().toString().equals(filter)) {

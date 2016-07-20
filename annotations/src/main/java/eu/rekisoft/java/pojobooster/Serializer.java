@@ -33,13 +33,7 @@ public class Serializer extends Extension {
     }
 
     @Override
-    public List<TypeName> getAttentionalImports() {
-        return Collections.singletonList(TypeName.get(Serializable.class));
-    }
-
-    @Override
     public List<MethodSpec> generateCode(String target, RoundEnvironment environment) {
-        System.out.println("Serializer processes " + target + "...");
         String hashInfo = target;
         for(Element elem : environment.getElementsAnnotatedWith(eu.rekisoft.java.pojotoolkit.Field.class)) {
             if(elem.getEnclosingElement().asType().toString().equals(target)) {
