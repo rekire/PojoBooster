@@ -32,13 +32,15 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import javax.tools.JavaFileObject;
 
 import eu.rekisoft.java.pojotoolkit.Enhance;
 import eu.rekisoft.java.pojotoolkit.Extension;
+import eu.rekisoft.java.pojotoolkit.Field;
 
-@SupportedAnnotationTypes({"eu.rekisoft.java.pojotoolkit.Enhance", "eu.rekisoft.java.pojotoolkit.Field"})
+@SupportedAnnotationTypes({"eu.rekisoft.java.pojotoolkit.Enhance"/*, "eu.rekisoft.java.pojotoolkit.Field"*/})
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 @TargetApi(24) // STFU
 public class Preprocessor extends AbstractProcessor {
@@ -49,16 +51,26 @@ public class Preprocessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+        HashMap<TypeMirror, List<AnnotatedClass.Member>> fieldsPerType = new HashMap<>();
+        for(Element elem : roundEnv.getElementsAnnotatedWith(eu.rekisoft.java.pojotoolkit.Field.class)) {
+            TypeMirror typeMirror = elem.getEnclosingElement().asType();
+            Field field = elem.getAnnotation(Field.class);
+            List<AnnotatedClass.Member> list = fieldsPerType.get(typeMirror);
+            if(list == null) {
+                list = new ArrayList<>();
+                fieldsPerType.put(typeMirror, list);
+            }
+            list.add(new AnnotatedClass.Member(field, elem));
+        }
+
         Set<? extends Element> instances = roundEnv.getElementsAnnotatedWith(Enhance.class);
         for(Element elem : instances) {
             if(elem.getKind() == ElementKind.CLASS) {
-                TypeElement type = (TypeElement)elem;
-                Enhance annotation = elem.getAnnotation(Enhance.class);
                 for(AnnotationMirror annotationMirror : elem.getAnnotationMirrors()) {
                     String annotationClass = annotationMirror.getAnnotationType().asElement().asType().toString();
                     if(Enhance.class.getName().equals(annotationClass)) {
 
-                        processSingle(annotationMirror, type, roundEnv);
+                        writeFile(collectInfo(annotationMirror, (TypeElement)elem, roundEnv, fieldsPerType));
 
                         Set<VariableElement> fields = ElementFilter.fieldsIn(instances);
                         System.out.println("Test " + fields.size());
@@ -72,42 +84,26 @@ public class Preprocessor extends AbstractProcessor {
         return true; // no further processing of this annotation type
     }
 
-    private void processSingle(AnnotationMirror annotationMirror, TypeElement type, RoundEnvironment roundEnv) {
-        //System.out.println(annotationMirror.getAnnotationType().asElement().asType().toString());
-        CharSequence simpleBaseName = type.getSimpleName();
-        String targetName = simpleBaseName.toString();
-        CharSequence fullBaseName = type.getQualifiedName();
-        CharSequence packageName = type.getQualifiedName().subSequence(0, fullBaseName.length() - simpleBaseName.length() - 1);
+    private void writeFile(AnnotatedClass annotatedClass) {
         HashSet<TypeName> interfaces = new HashSet<>();
         List<MethodSpec> methods = new ArrayList<>();
         List<FieldSpec> members = new ArrayList<>();
 
-        for(Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : annotationMirror.getElementValues().entrySet()) {
-            if("extensions".equals(entry.getKey().getSimpleName().toString())) {
-                //System.out.println(entry.getValue().getClass() + ": " + entry.getValue());
-                List<AnnotationValue> extensions = (List<AnnotationValue>)entry.getValue().getValue();
-                for(AnnotationValue extension : extensions) {
-                    DeclaredType extensionType = (DeclaredType)extension.getValue();
-                    System.out.println(extensionType.toString());
-                    try {
-                        Extension impl = (Extension)Class.forName(extensionType.toString()).getDeclaredConstructor(TypeName.class).newInstance(ClassName.bestGuess(targetName));
-                        methods.addAll(impl.generateCode(type.getQualifiedName().toString(), roundEnv));
-                        members.addAll(impl.generateMembers());
-                        interfaces.addAll(impl.getAttentionalInterfaces());
-                    } catch(ReflectiveOperationException e) {
-                        e.printStackTrace();
-                    }
-                }
-            } else if("name".equals(entry.getKey().getSimpleName().toString())) {
-                targetName = entry.getValue().getValue().toString();
+        for(Class<? extends Extension> extension : annotatedClass.extensions) {
+            try {
+                Extension impl = extension.getDeclaredConstructor(TypeName.class).newInstance(annotatedClass.targetType);
+                methods.addAll(impl.generateCode(annotatedClass));
+                members.addAll(impl.generateMembers());
+                interfaces.addAll(impl.getAttentionalInterfaces());
+            } catch(ReflectiveOperationException e) {
+                e.printStackTrace();
             }
-            //System.out.println(entry.getKey().getSimpleName() + ": " + entry.getValue().getValue());
         }
 
         TypeSpec.Builder generated = TypeSpec
-                .classBuilder(targetName)
+                .classBuilder(annotatedClass.targetType)
                 .addModifiers(Modifier.PUBLIC)
-                .superclass(ClassName.bestGuess(type.getQualifiedName().toString()));
+                .superclass(annotatedClass.sourceType);
         for(TypeName anInterface : interfaces) {
             generated.addSuperinterface(anInterface);
         }
@@ -118,11 +114,11 @@ public class Preprocessor extends AbstractProcessor {
             generated.addMethod(method);
         }
 
-        JavaFile javaFile = JavaFile.builder(packageName.toString(), generated.build()).indent("    ").build();
+        JavaFile javaFile = JavaFile.builder(annotatedClass.targetType.packageName(), generated.build()).indent("    ").build();
 
 
         try {
-            JavaFileObject jfo = processingEnv.getFiler().createSourceFile(packageName + "." + targetName);
+            JavaFileObject jfo = processingEnv.getFiler().createSourceFile(annotatedClass.targetType.toString());
             BufferedWriter bw = new BufferedWriter(jfo.openWriter());
             bw.append("// This file is generated. Wohoo!");
             bw.newLine();
@@ -135,10 +131,36 @@ public class Preprocessor extends AbstractProcessor {
         }
     }
 
+    private AnnotatedClass collectInfo(AnnotationMirror annotationMirror, TypeElement type, RoundEnvironment roundEnv, HashMap<TypeMirror, List<AnnotatedClass.Member>> fieldsPerType) {
+
+        List<Class<?>> extensions = new ArrayList<>();
+        String targetName = type.getSimpleName().toString();
+        for(Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : annotationMirror.getElementValues().entrySet()) {
+            if("extensions".equals(entry.getKey().getSimpleName().toString())) {
+                for(AnnotationValue extension : (List<AnnotationValue>)entry.getValue().getValue()) {
+                    DeclaredType extensionType = (DeclaredType)extension.getValue();
+                    //System.out.println(extensionType.toString());
+                    try {
+                        extensions.add(Class.forName(extensionType.toString()));
+                    } catch(ReflectiveOperationException e) {
+                        e.printStackTrace();
+                    }
+                }
+            } else if("name".equals(entry.getKey().getSimpleName().toString())) {
+                targetName = entry.getValue().getValue().toString();
+            }
+            //System.out.println(entry.getKey().getSimpleName() + ": " + entry.getValue().getValue());
+        }
+        String packageName = type.getQualifiedName().toString();
+        packageName = packageName.substring(0, packageName.indexOf(type.getSimpleName().toString()));
+        return new AnnotatedClass(extensions, ClassName.bestGuess(packageName + targetName), ClassName.bestGuess(type.toString()), fieldsPerType.get(type.asType()));
+    }
+
 
     private Map.Entry<TypeElement, DeclaredType> getType(String className) {
         TypeElement typeElement = processingEnv.getElementUtils().getTypeElement(className);
         DeclaredType declaredType = processingEnv.getTypeUtils().getDeclaredType(typeElement);
         return new HashMap.SimpleEntry<>(typeElement, declaredType);
     }
+
 }

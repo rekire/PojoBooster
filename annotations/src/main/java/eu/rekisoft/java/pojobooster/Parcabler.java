@@ -17,12 +17,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.processing.RoundEnvironment;
-import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
 import javax.lang.model.type.ArrayType;
-import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
@@ -50,20 +47,7 @@ public class Parcabler extends Extension {
     }
 
     @Override
-    public List<MethodSpec> generateCode(String filter, RoundEnvironment environment) {
-        for(Element elem : environment.getElementsAnnotatedWith(eu.rekisoft.java.pojotoolkit.Field.class)) {
-            if(elem.getEnclosingElement().asType().toString().equals(filter)) {
-                eu.rekisoft.java.pojotoolkit.Field field = elem.getAnnotation(eu.rekisoft.java.pojotoolkit.Field.class);
-                String message = "Field annotation found in " + elem.getSimpleName()
-                        + " with " + elem.getSimpleName() + " -> " + field.value();
-                //System.out.println(elem.getEnclosingElement().asType() + " - " + elem.asType() + " " + elem.getSimpleName());
-                fields.put(elem.asType(), elem.getSimpleName());
-                //classes.get(typeElement).add(elem);
-                //String message = "Field annotation found in " + elem.getSimpleName()
-                //        + " with " + elem.getSimpleName() + " -> " + field.value();
-                //processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, message);
-            }
-        }
+    public List<MethodSpec> generateCode(AnnotatedClass annotatedClass) {
         List<MethodSpec> methods = new ArrayList<>(3);
         methods.add(MethodSpec.methodBuilder("describeContents")
                 .addAnnotation(Override.class)
@@ -76,17 +60,18 @@ public class Parcabler extends Extension {
                 .addModifiers(Modifier.PUBLIC)
                 .addParameter(Parcel.class, "dest")
                 .addParameter(int.class, "flags");
-        for(Map.Entry<TypeMirror, Name> field : fields.entrySet()) {
-            TypeKind fieldKind = field.getKey().getKind();
+        for(AnnotatedClass.Member member : annotatedClass.members) {
+
+            TypeKind fieldKind = member.element.asType().getKind();
             String suffix = "";
             if(fieldKind == TypeKind.ARRAY) {
                 suffix = "Array";
-                fieldKind = ((ArrayType)field.getKey()).getComponentType().getKind();
+                fieldKind = ((ArrayType)member.element.asType()).getComponentType().getKind();
             }
             String type = null;
             switch(fieldKind) {
             case BOOLEAN:
-                writeToParcel.addStatement("dest.writeByte($L ? 0 : 1)", field.getValue());
+                writeToParcel.addStatement("dest.writeByte($L ? 0 : 1)", member.element);
                 continue;
             case SHORT:
             case INT:
@@ -108,17 +93,16 @@ public class Parcabler extends Extension {
                 // TODO check if the we generate this class
             case DECLARED:
                 type = "Value";
-                Element element = ((DeclaredType)field.getKey()).asElement();
-                if(String.class.getName().equals(element.toString())) {
+                if(String.class.getName().equals(member.element.toString())) {
                     type = "String";
                 }
-                System.out.println(((DeclaredType)field.getKey()).asElement());
+                //System.out.println(((DeclaredType)element.getKey()).asElement());
                 break;
             case ARRAY:
             default:
-                throw new RuntimeException("Not supported! " + fieldKind.name() + " " + field.getValue());
+                throw new RuntimeException("Not supported! " + fieldKind.name() + " " + member.element.toString());
             }
-            writeToParcel.addStatement("dest.write$L$L($L)", type, suffix, field.getValue());
+            writeToParcel.addStatement("dest.write$L$L($L)", type, suffix, member.element.toString());
         }
         methods.add(writeToParcel.build());
         MethodSpec.Builder constructor = MethodSpec.constructorBuilder()

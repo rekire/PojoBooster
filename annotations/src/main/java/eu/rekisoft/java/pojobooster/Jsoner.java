@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
 
@@ -30,30 +29,28 @@ public class Jsoner extends Extension {
     }
 
     @Override
-    public List<MethodSpec> generateCode(String filter, RoundEnvironment environment) {
+    public List<MethodSpec> generateCode(AnnotatedClass annotatedClass) {
         MethodSpec.Builder method = MethodSpec
                 .methodBuilder("toJSON")
                 .addModifiers(Modifier.PUBLIC)
                 .returns(String.class);
         method.addStatement("StringBuilder sb = new StringBuilder(\"{\")");
         String delimiter = "";
-        for(Element elem : environment.getElementsAnnotatedWith(eu.rekisoft.java.pojotoolkit.Field.class)) {
-            if(elem.getEnclosingElement().asType().toString().equals(filter)) {
-                eu.rekisoft.java.pojotoolkit.Field field = elem.getAnnotation(eu.rekisoft.java.pojotoolkit.Field.class);
-                String fieldName;
-                if(field.value().isEmpty()) {
-                    fieldName = elem.getSimpleName().toString();
-                } else {
-                    fieldName = field.value();
-                }
-                method.addStatement("sb.append(\"$L\\\"$L\\\":\")", delimiter, fieldName);
-                if(delimiter.isEmpty()) {
-                    delimiter = ", ";
-                }
-
-                // TODO add type safety
-                addElementToJson(method, elem, field);
+        for(AnnotatedClass.Member member : annotatedClass.members) {
+            eu.rekisoft.java.pojotoolkit.Field field = member.annotation;
+            String fieldName;
+            if(field.value().isEmpty()) {
+                fieldName = member.element.getSimpleName().toString();
+            } else {
+                fieldName = field.value();
             }
+            method.addStatement("sb.append(\"$L\\\"$L\\\":\")", delimiter, fieldName);
+            if(delimiter.isEmpty()) {
+                delimiter = ", ";
+            }
+
+            // TODO add type safety
+            addElementToJson(method, member.element, field);
         }
         method.addStatement("return sb.toString()");
         return Collections.singletonList(method.build());

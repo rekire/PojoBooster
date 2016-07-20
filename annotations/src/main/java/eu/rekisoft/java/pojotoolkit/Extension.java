@@ -6,7 +6,7 @@ import com.squareup.javapoet.TypeName;
 
 import java.util.List;
 
-import javax.annotation.processing.RoundEnvironment;
+import eu.rekisoft.java.pojobooster.AnnotatedClass;
 
 /**
  * Created on 17.07.2016.
@@ -22,7 +22,7 @@ public abstract class Extension {
 
     public abstract List<TypeName> getAttentionalInterfaces();
 
-    public abstract List<MethodSpec> generateCode(String filter, RoundEnvironment environment);
-
     public abstract List<FieldSpec> generateMembers();
+
+    public abstract List<MethodSpec> generateCode(AnnotatedClass annotatedClass);
 }
