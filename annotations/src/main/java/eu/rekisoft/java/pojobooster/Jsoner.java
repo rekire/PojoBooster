@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
 
@@ -19,8 +20,8 @@ import eu.rekisoft.java.pojotoolkit.Field;
  */
 public class Jsoner extends Extension {
 
-    public Jsoner(TypeName className) {
-        super(className);
+    public Jsoner(AnnotatedClass annotatedClass, RoundEnvironment environment) {
+        super(annotatedClass, environment);
     }
 
     @Override
@@ -29,7 +30,7 @@ public class Jsoner extends Extension {
     }
 
     @Override
-    public List<MethodSpec> generateCode(AnnotatedClass annotatedClass) {
+    public List<MethodSpec> generateCode() {
         MethodSpec.Builder method = MethodSpec
                 .methodBuilder("toJSON")
                 .addModifiers(Modifier.PUBLIC)

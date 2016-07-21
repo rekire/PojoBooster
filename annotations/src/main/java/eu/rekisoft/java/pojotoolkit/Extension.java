@@ -6,6 +6,8 @@ import com.squareup.javapoet.TypeName;
 
 import java.util.List;
 
+import javax.annotation.processing.RoundEnvironment;
+
 import eu.rekisoft.java.pojobooster.AnnotatedClass;
 
 /**
@@ -14,15 +16,17 @@ import eu.rekisoft.java.pojobooster.AnnotatedClass;
  * @author René Kilczan
  */
 public abstract class Extension {
-    protected final TypeName className;
+    protected final AnnotatedClass annotatedClass;
+    private final RoundEnvironment environment;
 
-    public Extension(TypeName className) {
-        this.className = className;
+    public Extension(AnnotatedClass annotatedClass, RoundEnvironment environment) {
+        this.annotatedClass = annotatedClass;
+        this.environment = environment;
     }
 
     public abstract List<TypeName> getAttentionalInterfaces();
 
     public abstract List<FieldSpec> generateMembers();
 
-    public abstract List<MethodSpec> generateCode(AnnotatedClass annotatedClass);
+    public abstract List<MethodSpec> generateCode();
 }

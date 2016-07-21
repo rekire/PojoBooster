@@ -13,15 +13,12 @@ import com.squareup.javapoet.TypeSpec;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
+import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.Modifier;
-import javax.lang.model.element.Name;
 import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.TypeKind;
-import javax.lang.model.type.TypeMirror;
 
 import eu.rekisoft.java.pojotoolkit.Extension;
 
@@ -31,14 +28,9 @@ import eu.rekisoft.java.pojotoolkit.Extension;
  * @author René Kilczan
  */
 public class Parcabler extends Extension {
-    private final ArrayList<TypeName> classes;
-    private final Map<TypeMirror, Name> fields = new HashMap<>();
 
-    public Parcabler(TypeName className) {
-        super(className);
-        classes = new ArrayList<>(2);
-        classes.add(TypeName.get(Parcelable.class));
-        classes.add(TypeName.get(Parcel.class));
+    public Parcabler(AnnotatedClass annotatedClass, RoundEnvironment environment) {
+        super(annotatedClass, environment);
     }
 
     @Override
@@ -47,7 +39,7 @@ public class Parcabler extends Extension {
     }
 
     @Override
-    public List<MethodSpec> generateCode(AnnotatedClass annotatedClass) {
+    public List<MethodSpec> generateCode() {
         List<MethodSpec> methods = new ArrayList<>(3);
         methods.add(MethodSpec.methodBuilder("describeContents")
                 .addAnnotation(Override.class)
@@ -114,6 +106,7 @@ public class Parcabler extends Extension {
 
     @Override
     public List<FieldSpec> generateMembers() {
+        TypeName className = annotatedClass.targetType;
         TypeName generatorType = ParameterizedTypeName.get(ClassName.get(Parcelable.Creator.class), className);
         TypeSpec creator = TypeSpec.anonymousClassBuilder("")
                 .addSuperinterface(generatorType)

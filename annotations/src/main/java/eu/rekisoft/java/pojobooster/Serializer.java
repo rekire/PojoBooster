@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
 
@@ -22,8 +23,8 @@ import eu.rekisoft.java.pojotoolkit.Extension;
 public class Serializer extends Extension {
     private long hash;
 
-    public Serializer(TypeName className) {
-        super(className);
+    public Serializer(AnnotatedClass annotatedClass, RoundEnvironment environment) {
+        super(annotatedClass, environment);
     }
 
     @Override
@@ -32,7 +33,7 @@ public class Serializer extends Extension {
     }
 
     @Override
-    public List<MethodSpec> generateCode(AnnotatedClass annotatedClass) {
+    public List<MethodSpec> generateCode() {
         String hashInfo = annotatedClass.targetType.toString();
         for(AnnotatedClass.Member member : annotatedClass.members) {
             Element elem = member.element;

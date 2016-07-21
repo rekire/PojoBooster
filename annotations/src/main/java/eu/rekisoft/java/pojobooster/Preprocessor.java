@@ -70,7 +70,7 @@ public class Preprocessor extends AbstractProcessor {
                     String annotationClass = annotationMirror.getAnnotationType().asElement().asType().toString();
                     if(Enhance.class.getName().equals(annotationClass)) {
 
-                        writeFile(collectInfo(annotationMirror, (TypeElement)elem, roundEnv, fieldsPerType));
+                        writeFile(collectInfo(annotationMirror, (TypeElement)elem, roundEnv, fieldsPerType), roundEnv);
 
                         Set<VariableElement> fields = ElementFilter.fieldsIn(instances);
                         System.out.println("Test " + fields.size());
@@ -84,15 +84,15 @@ public class Preprocessor extends AbstractProcessor {
         return true; // no further processing of this annotation type
     }
 
-    private void writeFile(AnnotatedClass annotatedClass) {
+    private void writeFile(AnnotatedClass annotatedClass, RoundEnvironment environment) {
         HashSet<TypeName> interfaces = new HashSet<>();
         List<MethodSpec> methods = new ArrayList<>();
         List<FieldSpec> members = new ArrayList<>();
 
         for(Class<? extends Extension> extension : annotatedClass.extensions) {
             try {
-                Extension impl = extension.getDeclaredConstructor(TypeName.class).newInstance(annotatedClass.targetType);
-                methods.addAll(impl.generateCode(annotatedClass));
+                Extension impl = extension.getDeclaredConstructor(AnnotatedClass.class, RoundEnvironment.class).newInstance(annotatedClass, environment);
+                methods.addAll(impl.generateCode());
                 members.addAll(impl.generateMembers());
                 interfaces.addAll(impl.getAttentionalInterfaces());
             } catch(ReflectiveOperationException e) {
@@ -115,7 +115,6 @@ public class Preprocessor extends AbstractProcessor {
         }
 
         JavaFile javaFile = JavaFile.builder(annotatedClass.targetType.packageName(), generated.build()).indent("    ").build();
-
 
         try {
             JavaFileObject jfo = processingEnv.getFiler().createSourceFile(annotatedClass.targetType.toString());
