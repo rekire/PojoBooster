@@ -1,5 +1,7 @@
 package eu.rekisoft.java.pojobooster;
 
+import android.support.annotation.NonNull;
+
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeName;
@@ -20,15 +22,17 @@ import eu.rekisoft.java.pojotoolkit.Field;
  */
 public class Jsoner extends Extension {
 
-    public Jsoner(AnnotatedClass annotatedClass, RoundEnvironment environment) {
+    public Jsoner(@NonNull AnnotatedClass annotatedClass, @NonNull RoundEnvironment environment) {
         super(annotatedClass, environment);
     }
 
+    @NonNull
     @Override
     public List<TypeName> getAttentionalInterfaces() {
         return new ArrayList<>(0);
     }
 
+    @NonNull
     @Override
     public List<MethodSpec> generateCode() {
         MethodSpec.Builder method = MethodSpec
@@ -91,6 +95,7 @@ public class Jsoner extends Extension {
         }
     }
 
+    @NonNull
     @Override
     public List<FieldSpec> generateMembers() {
         return new ArrayList<>(0);

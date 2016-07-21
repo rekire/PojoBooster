@@ -2,6 +2,7 @@ package eu.rekisoft.java.pojobooster;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.support.annotation.NonNull;
 
 import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
@@ -29,15 +30,17 @@ import eu.rekisoft.java.pojotoolkit.Extension;
  */
 public class Parcabler extends Extension {
 
-    public Parcabler(AnnotatedClass annotatedClass, RoundEnvironment environment) {
+    public Parcabler(@NonNull AnnotatedClass annotatedClass, @NonNull RoundEnvironment environment) {
         super(annotatedClass, environment);
     }
 
+    @NonNull
     @Override
     public List<TypeName> getAttentionalInterfaces() {
         return Collections.singletonList(TypeName.get(Parcelable.class));
     }
 
+    @NonNull
     @Override
     public List<MethodSpec> generateCode() {
         List<MethodSpec> methods = new ArrayList<>(3);
@@ -104,6 +107,7 @@ public class Parcabler extends Extension {
         return methods;
     }
 
+    @NonNull
     @Override
     public List<FieldSpec> generateMembers() {
         TypeName className = annotatedClass.targetType;

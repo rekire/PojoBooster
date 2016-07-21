@@ -1,5 +1,7 @@
 package eu.rekisoft.java.pojobooster;
 
+import android.support.annotation.NonNull;
+
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeName;
@@ -23,18 +25,8 @@ import eu.rekisoft.java.pojotoolkit.Extension;
 public class Serializer extends Extension {
     private long hash;
 
-    public Serializer(AnnotatedClass annotatedClass, RoundEnvironment environment) {
-        super(annotatedClass, environment);
-    }
-
-    @Override
-    public List<TypeName> getAttentionalInterfaces() {
-        return Collections.singletonList(TypeName.get(Serializable.class));
-    }
-
-    @Override
-    public List<MethodSpec> generateCode() {
-        String hashInfo = annotatedClass.targetType.toString();
+    public Serializer(@NonNull AnnotatedClass annotatedClass, @NonNull RoundEnvironment environment) {
+        super(annotatedClass, environment);String hashInfo = annotatedClass.targetType.toString();
         for(AnnotatedClass.Member member : annotatedClass.members) {
             Element elem = member.element;
             eu.rekisoft.java.pojotoolkit.Field field = member.annotation;
@@ -48,9 +40,21 @@ public class Serializer extends Extension {
             //processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, message);
         }
         hash = hashInfo.hashCode();
+    }
+
+    @NonNull
+    @Override
+    public List<TypeName> getAttentionalInterfaces() {
+        return Collections.singletonList(TypeName.get(Serializable.class));
+    }
+
+    @NonNull
+    @Override
+    public List<MethodSpec> generateCode() {
         return new ArrayList<>(0);
     }
 
+    @NonNull
     @Override
     public List<FieldSpec> generateMembers() {
         return Collections.singletonList(

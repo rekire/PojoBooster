@@ -1,5 +1,7 @@
 package eu.rekisoft.java.pojotoolkit;
 
+import android.support.annotation.NonNull;
+
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeName;
@@ -16,17 +18,20 @@ import eu.rekisoft.java.pojobooster.AnnotatedClass;
  * @author René Kilczan
  */
 public abstract class Extension {
-    protected final AnnotatedClass annotatedClass;
-    private final RoundEnvironment environment;
+    @NonNull protected final AnnotatedClass annotatedClass;
+    @NonNull private final RoundEnvironment environment;
 
-    public Extension(AnnotatedClass annotatedClass, RoundEnvironment environment) {
+    public Extension(@NonNull AnnotatedClass annotatedClass, @NonNull RoundEnvironment environment) {
         this.annotatedClass = annotatedClass;
         this.environment = environment;
     }
 
+    @NonNull
     public abstract List<TypeName> getAttentionalInterfaces();
 
+    @NonNull
     public abstract List<FieldSpec> generateMembers();
 
+    @NonNull
     public abstract List<MethodSpec> generateCode();
 }

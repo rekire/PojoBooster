@@ -29,7 +29,7 @@ dependencies {
 }
 
 annotationProcessor {
-    library project(':annotations')
+    //library project(':annotations')
     library project(':preprocessor')
     processor "eu.rekisoft.java.pojobooster.Preprocessor"
     sourcesDir "src/generated/java"

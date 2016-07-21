@@ -130,6 +130,7 @@ public class Preprocessor extends AbstractProcessor {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private AnnotatedClass collectInfo(AnnotationMirror annotationMirror, TypeElement type, RoundEnvironment roundEnv, HashMap<TypeMirror, List<AnnotatedClass.Member>> fieldsPerType) {
         List<Class<?>> extensions = new ArrayList<>();
         String targetName = type.getSimpleName().toString();
