@@ -131,7 +131,6 @@ public class Preprocessor extends AbstractProcessor {
     }
 
     private AnnotatedClass collectInfo(AnnotationMirror annotationMirror, TypeElement type, RoundEnvironment roundEnv, HashMap<TypeMirror, List<AnnotatedClass.Member>> fieldsPerType) {
-
         List<Class<?>> extensions = new ArrayList<>();
         String targetName = type.getSimpleName().toString();
         for(Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : annotationMirror.getElementValues().entrySet()) {
@@ -155,11 +154,9 @@ public class Preprocessor extends AbstractProcessor {
         return new AnnotatedClass(extensions, ClassName.bestGuess(packageName + targetName), ClassName.bestGuess(type.toString()), fieldsPerType.get(type.asType()));
     }
 
-
     private Map.Entry<TypeElement, DeclaredType> getType(String className) {
         TypeElement typeElement = processingEnv.getElementUtils().getTypeElement(className);
         DeclaredType declaredType = processingEnv.getTypeUtils().getDeclaredType(typeElement);
         return new HashMap.SimpleEntry<>(typeElement, declaredType);
     }
-
 }

@@ -7,6 +7,7 @@ import java.util.List;
 import javax.lang.model.element.Element;
 
 import eu.rekisoft.java.pojotoolkit.Extension;
+import eu.rekisoft.java.pojotoolkit.Field;
 
 /**
  * Created on 20.07.2016.
@@ -27,10 +28,10 @@ public class AnnotatedClass {
     }
 
     public static class Member {
-        public final eu.rekisoft.java.pojotoolkit.Field annotation;
+        public final Field annotation;
         public final Element element;
 
-        public Member(eu.rekisoft.java.pojotoolkit.Field annotation, Element element) {
+        public Member(Field annotation, Element element) {
             this.annotation = annotation;
             this.element = element;
         }

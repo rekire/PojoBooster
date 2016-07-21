@@ -22,7 +22,7 @@ sourceSets {
 //noinspection GroovyAssignabilityCheck
 dependencies {
     compile project(':annotations')
-    //apt project(':annotations')
+    compileOnly project(':preprocessor')
     provided 'com.google.android:android:4.1.1.4'
     provided 'com.google.android:annotations:4.1.1.4'
     provided 'com.android.databinding:baseLibrary:2.2.0-alpha5'
@@ -30,6 +30,7 @@ dependencies {
 
 annotationProcessor {
     library project(':annotations')
+    library project(':preprocessor')
     processor "eu.rekisoft.java.pojobooster.Preprocessor"
     sourcesDir "src/generated/java"
     //sourcesDir "build/generated/source/beans"
