@@ -3,10 +3,8 @@ package eu.rekisoft.java.pojobooster;
 import java.util.UUID;
 
 import eu.rekisoft.java.pojotoolkit.Enhance;
-import eu.rekisoft.java.pojotoolkit.Extension;
 import eu.rekisoft.java.pojotoolkit.Field;
 import eu.rekisoft.java.pojotoolkit.JSON;
-import eu.rekisoft.java.pojotoolkit.JsonSupport;
 import eu.rekisoft.java.pojotoolkit.Parcelable;
 import eu.rekisoft.java.pojotoolkit.Pool;
 import eu.rekisoft.java.pojotoolkit.Serializable;

@@ -10,7 +10,10 @@ import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
 import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -45,6 +48,8 @@ import eu.rekisoft.java.pojotoolkit.Field;
 @TargetApi(24) // STFU
 public class Preprocessor extends AbstractProcessor {
 
+    private String sourcePath = null;
+
     public Preprocessor() {
         super();
     }
@@ -61,6 +66,19 @@ public class Preprocessor extends AbstractProcessor {
                 fieldsPerType.put(typeMirror, list);
             }
             list.add(new AnnotatedClass.Member(field, elem));
+        }
+
+        if(sourcePath == null) {
+            try {
+                JavaFileObject generationForPath = processingEnv.getFiler().createSourceFile("Killme" + System.currentTimeMillis());
+                Writer writer = generationForPath.openWriter();
+                sourcePath = generationForPath.toUri().getPath();
+                writer.close();
+                generationForPath.delete();
+                System.out.println(sourcePath);
+            } catch(IOException e) {
+
+            }
         }
 
         Set<? extends Element> instances = roundEnv.getElementsAnnotatedWith(Enhance.class);
@@ -117,8 +135,14 @@ public class Preprocessor extends AbstractProcessor {
         JavaFile javaFile = JavaFile.builder(annotatedClass.targetType.packageName(), generated.build()).indent("    ").build();
 
         try {
-            JavaFileObject jfo = processingEnv.getFiler().createSourceFile(annotatedClass.targetType.toString());
-            BufferedWriter bw = new BufferedWriter(jfo.openWriter());
+            String module = sourcePath.substring(0, sourcePath.indexOf("/build/classes/"));
+            // should be written to build/generated/source/pojo
+            String dir = module + "/src/generated/" + annotatedClass.targetType.packageName().replace(".", "/");
+            File directory = new File(dir);
+            directory.mkdirs();
+            String targetFile = dir + "/" + annotatedClass.targetType.simpleName() + ".java";
+            System.out.println("write to: " + targetFile);
+            BufferedWriter bw = new BufferedWriter(new FileWriter(targetFile));
             bw.append("// This file is generated. Wohoo!");
             bw.newLine();
             bw.newLine();
