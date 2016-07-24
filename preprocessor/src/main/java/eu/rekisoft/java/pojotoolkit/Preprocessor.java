@@ -1,4 +1,4 @@
-package eu.rekisoft.java.pojobooster;
+package eu.rekisoft.java.pojotoolkit;
 
 import android.annotation.TargetApi;
 
@@ -33,17 +33,14 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
-import javax.lang.model.util.ElementFilter;
 import javax.tools.JavaFileObject;
 
-import eu.rekisoft.java.pojotoolkit.Enhance;
-import eu.rekisoft.java.pojotoolkit.Extension;
-import eu.rekisoft.java.pojotoolkit.Field;
+import eu.rekisoft.java.pojobooster.Enhance;
+import eu.rekisoft.java.pojobooster.Field;
 
-@SupportedAnnotationTypes({"eu.rekisoft.java.pojotoolkit.Enhance"/*, "eu.rekisoft.java.pojotoolkit.Field"*/})
+@SupportedAnnotationTypes({"eu.rekisoft.java.pojobooster.Enhance"/*, "eu.rekisoft.java.pojobooster.PojoBooster.Field"*/})
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 @TargetApi(24) // STFU
 public class Preprocessor extends AbstractProcessor {
@@ -57,7 +54,7 @@ public class Preprocessor extends AbstractProcessor {
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         HashMap<TypeMirror, List<AnnotatedClass.Member>> fieldsPerType = new HashMap<>();
-        for(Element elem : roundEnv.getElementsAnnotatedWith(eu.rekisoft.java.pojotoolkit.Field.class)) {
+        for(Element elem : roundEnv.getElementsAnnotatedWith(Field.class)) {
             TypeMirror typeMirror = elem.getEnclosingElement().asType();
             Field field = elem.getAnnotation(Field.class);
             List<AnnotatedClass.Member> list = fieldsPerType.get(typeMirror);
@@ -73,6 +70,7 @@ public class Preprocessor extends AbstractProcessor {
                 JavaFileObject generationForPath = processingEnv.getFiler().createSourceFile("Killme" + System.currentTimeMillis());
                 Writer writer = generationForPath.openWriter();
                 sourcePath = generationForPath.toUri().getPath();
+                writer.flush();
                 writer.close();
                 generationForPath.delete();
                 System.out.println(sourcePath);
@@ -88,12 +86,13 @@ public class Preprocessor extends AbstractProcessor {
                     String annotationClass = annotationMirror.getAnnotationType().asElement().asType().toString();
                     if(Enhance.class.getName().equals(annotationClass)) {
 
-                        writeFile(collectInfo(annotationMirror, (TypeElement)elem, roundEnv, fieldsPerType), roundEnv);
+                        writeFile(collectInfo(annotationMirror, (TypeElement)elem, fieldsPerType), roundEnv);
 
-                        Set<VariableElement> fields = ElementFilter.fieldsIn(instances);
+                        // playground for serialization
+                        List<? extends Element> fields = processingEnv.getElementUtils().getAllMembers((TypeElement)elem);
                         System.out.println("Test " + fields.size());
-                        for(VariableElement field : fields) {
-                            System.out.println("#> " + field.asType() + " " + field.getSimpleName());
+                        for(Element field : fields) {
+                            //System.out.println("#> " + field.asType() + " " + field.getSimpleName() + " ");
                         }
                     }
                 }
@@ -107,15 +106,23 @@ public class Preprocessor extends AbstractProcessor {
         List<MethodSpec> methods = new ArrayList<>();
         List<FieldSpec> members = new ArrayList<>();
 
+        Extension[] extensions = new Extension[annotatedClass.extensions.size()];
+        int i=0;
+
         for(Class<? extends Extension> extension : annotatedClass.extensions) {
             try {
-                Extension impl = extension.getDeclaredConstructor(AnnotatedClass.class, RoundEnvironment.class).newInstance(annotatedClass, environment);
-                methods.addAll(impl.generateCode());
-                members.addAll(impl.generateMembers());
-                interfaces.addAll(impl.getAttentionalInterfaces());
+                Extension impl = extension.getDeclaredConstructor(ExtensionSettings.class).newInstance(new ExtensionSettings(annotatedClass, environment, processingEnv));
+                extensions[i++] = impl;
+                annotatedClass.interfaces.addAll(impl.getAttentionalInterfaces());
             } catch(ReflectiveOperationException e) {
                 e.printStackTrace();
             }
+        }
+
+        for (Extension impl : extensions) {
+            methods.addAll(impl.generateCode());
+            members.addAll(impl.generateMembers());
+            interfaces.addAll(impl.getAttentionalInterfaces());
         }
 
         TypeSpec.Builder generated = TypeSpec
@@ -155,7 +162,7 @@ public class Preprocessor extends AbstractProcessor {
     }
 
     @SuppressWarnings("unchecked")
-    private AnnotatedClass collectInfo(AnnotationMirror annotationMirror, TypeElement type, RoundEnvironment roundEnv, HashMap<TypeMirror, List<AnnotatedClass.Member>> fieldsPerType) {
+    private AnnotatedClass collectInfo(AnnotationMirror annotationMirror, TypeElement type, HashMap<TypeMirror, List<AnnotatedClass.Member>> fieldsPerType) {
         List<Class<?>> extensions = new ArrayList<>();
         String targetName = type.getSimpleName().toString();
         for(Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : annotationMirror.getElementValues().entrySet()) {
@@ -176,7 +183,7 @@ public class Preprocessor extends AbstractProcessor {
         }
         String packageName = type.getQualifiedName().toString();
         packageName = packageName.substring(0, packageName.indexOf(type.getSimpleName().toString()));
-        return new AnnotatedClass(extensions, ClassName.bestGuess(packageName + targetName), ClassName.bestGuess(type.toString()), fieldsPerType.get(type.asType()));
+        return new AnnotatedClass(extensions, ClassName.bestGuess(packageName + targetName), ClassName.bestGuess(type.toString()), fieldsPerType.get(type.asType()), type);
     }
 
     private Map.Entry<TypeElement, DeclaredType> getType(String className) {

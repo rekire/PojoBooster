@@ -1,13 +1,15 @@
-package eu.rekisoft.java.pojobooster;
+package eu.rekisoft.java.pojotoolkit;
 
 import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.TypeName;
 
+import java.util.HashSet;
 import java.util.List;
 
 import javax.lang.model.element.Element;
+import javax.lang.model.element.TypeElement;
 
-import eu.rekisoft.java.pojotoolkit.Extension;
-import eu.rekisoft.java.pojotoolkit.Field;
+import eu.rekisoft.java.pojobooster.Field;
 
 /**
  * Created on 20.07.2016.
@@ -19,12 +21,16 @@ public class AnnotatedClass {
     public final ClassName targetType;
     public final ClassName sourceType;
     public final List<Member> members;
+    public final TypeElement type;
+    public final HashSet<TypeName> interfaces;
 
-    public AnnotatedClass(List<Class<?>> extensions, ClassName targetType, ClassName sourceType, List<Member> members) {
+    public AnnotatedClass(List<Class<?>> extensions, ClassName targetType, ClassName sourceType, List<Member> members, TypeElement type) {
         this.extensions = (List<Class<? extends Extension>>)(Object)extensions;
         this.targetType = targetType;
         this.sourceType = sourceType;
         this.members = members;
+        this.type = type;
+        this.interfaces = new HashSet<>();
     }
 
     public static class Member {

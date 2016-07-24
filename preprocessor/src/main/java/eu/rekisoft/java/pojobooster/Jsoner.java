@@ -14,16 +14,17 @@ import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
 
+import eu.rekisoft.java.pojotoolkit.AnnotatedClass;
 import eu.rekisoft.java.pojotoolkit.Extension;
-import eu.rekisoft.java.pojotoolkit.Field;
+import eu.rekisoft.java.pojotoolkit.ExtensionSettings;
 
 /**
  * Created by René Kilczan on 19.07.16.
  */
 public class Jsoner extends Extension {
 
-    public Jsoner(@NonNull AnnotatedClass annotatedClass, @NonNull RoundEnvironment environment) {
-        super(annotatedClass, environment);
+    public Jsoner(@NonNull ExtensionSettings settings) {
+        super(settings);
     }
 
     @NonNull
@@ -42,7 +43,7 @@ public class Jsoner extends Extension {
         method.addStatement("StringBuilder sb = new StringBuilder(\"{\")");
         String delimiter = "";
         for(AnnotatedClass.Member member : annotatedClass.members) {
-            eu.rekisoft.java.pojotoolkit.Field field = member.annotation;
+            Field field = member.annotation;
             String fieldName;
             if(field.value().isEmpty()) {
                 fieldName = member.element.getSimpleName().toString();

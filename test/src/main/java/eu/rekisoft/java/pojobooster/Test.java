@@ -2,8 +2,6 @@ package eu.rekisoft.java.pojobooster;
 
 import java.util.UUID;
 
-import eu.rekisoft.java.pojotoolkit.Enhance;
-import eu.rekisoft.java.pojotoolkit.Field;
 import eu.rekisoft.java.pojotoolkit.JSON;
 import eu.rekisoft.java.pojotoolkit.Parcelable;
 import eu.rekisoft.java.pojotoolkit.Pool;
@@ -16,7 +14,7 @@ import eu.rekisoft.java.pojotoolkit.Serializable;
 @JSON
 @Pool
 @Serializable
-@Enhance(extensions = Serializer.class, name = "Example")
+@Enhance(extensions = {Serializer.class, Parcabler.class}, name = "Example")
 abstract class Test {
     @Field
     int age;
@@ -24,6 +22,8 @@ abstract class Test {
     String name;
     @Field
     UUID id;
+    @Field
+    Example2 boom;
 
     public String test() {
         return null;

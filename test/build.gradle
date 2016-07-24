@@ -13,9 +13,9 @@ configurations {
     compile.extendsFrom provided
 }
 sourceSets {
-    main { compileClasspath += configurations.provided }
-    // TODO this DSL should be added by the gradle plugin
-    generated {
+    main {
+        compileClasspath += configurations.provided
+        // TODO this DSL should be added by the gradle plugin
         java {
             srcDir "src/generated"
         }

@@ -16,12 +16,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
 
+import eu.rekisoft.java.pojotoolkit.AnnotatedClass;
 import eu.rekisoft.java.pojotoolkit.Extension;
+import eu.rekisoft.java.pojotoolkit.ExtensionSettings;
 
 /**
  * Created on 17.07.2016.
@@ -30,8 +32,8 @@ import eu.rekisoft.java.pojotoolkit.Extension;
  */
 public class Parcabler extends Extension {
 
-    public Parcabler(@NonNull AnnotatedClass annotatedClass, @NonNull RoundEnvironment environment) {
-        super(annotatedClass, environment);
+    public Parcabler(@NonNull ExtensionSettings settings) {
+        super(settings);
     }
 
     @NonNull
@@ -55,6 +57,9 @@ public class Parcabler extends Extension {
                 .addModifiers(Modifier.PUBLIC)
                 .addParameter(Parcel.class, "dest")
                 .addParameter(int.class, "flags");
+        MethodSpec.Builder constructor = MethodSpec.constructorBuilder()
+                .addModifiers(Modifier.PUBLIC)
+                .addParameter(Parcel.class, "in");
         for(AnnotatedClass.Member member : annotatedClass.members) {
 
             TypeKind fieldKind = member.element.asType().getKind();
@@ -63,6 +68,7 @@ public class Parcabler extends Extension {
                 suffix = "Array";
                 fieldKind = ((ArrayType)member.element.asType()).getComponentType().getKind();
             }
+            String args = "";
             String type = null;
             switch(fieldKind) {
             case BOOLEAN:
@@ -86,23 +92,56 @@ public class Parcabler extends Extension {
                 break;
             case ERROR:
                 // TODO check if the we generate this class
+                System.out.println("Error with " + member.element.asType());
             case DECLARED:
-                type = "Value";
-                if(String.class.getName().equals(member.element.toString())) {
+                System.out.println("Processing " + member.element.asType());
+                if(String.class.getName().equals(member.element.asType().toString())) {
                     type = "String";
+                } else /*if(!annotatedClass.interfaces.isEmpty()) {
+                    for (TypeName anInterface : annotatedClass.interfaces) {
+                        if(Parcelable.class.getName().equals(anInterface.toString())) {
+                            type = "Parcelable";
+                            break;
+                        } else if(java.io.Serializable.class.getName().equals(anInterface.toString())) {
+                            type = "Serializable";
+                            break;
+                        }
+                    }
+                }*/ {
+                    for(TypeMirror supertype : getTypeHelper().directSupertypes(member.element.asType())) {
+                        //System.out.println("member has implemented: " + supertype.toString());
+                        // TODO check also its supertype
+                        if(Parcelable.class.getName().equals(supertype.toString())) {
+                            type = "Parcelable";
+                            args = ", flags";
+                            break;
+                        } else if(java.io.Serializable.class.getName().equals(supertype.toString())) {
+                            type = "Serializable";
+                            break;
+                        }
+                    }
                 }
+                if(type == null) {
+                    type = "Value";
+                }
+
+                System.out.println(annotatedClass.targetType + " has this interfaces " + annotatedClass.interfaces.size());
                 //System.out.println(((DeclaredType)element.getKey()).asElement());
                 break;
             case ARRAY:
             default:
                 throw new RuntimeException("Not supported! " + fieldKind.name() + " " + member.element.toString());
             }
-            writeToParcel.addStatement("dest.write$L$L($L)", type, suffix, member.element.toString());
+            writeToParcel.addStatement("dest.write$L$L($L$L)", type, suffix, member.element.toString(), args);
+            if("Parcelable".equals(type)) {
+                constructor.addStatement("$L = in.readParcelable$L($L.getClass().getClassLoader())", member.element.toString(), suffix, member.element.toString());
+            } else if("Serializable".equals(type)) {
+                constructor.addStatement("$L = ($L)in.readSerializable$L()", member.element.toString(), member.element.asType().toString(), suffix);
+            } else {
+                constructor.addStatement("$L = in.read$L$L()", member.element.toString(), type, suffix);
+            }
         }
         methods.add(writeToParcel.build());
-        MethodSpec.Builder constructor = MethodSpec.constructorBuilder()
-                .addModifiers(Modifier.PUBLIC)
-                .addParameter(Parcel.class, "in");
         methods.add(constructor.build());
         return methods;
     }

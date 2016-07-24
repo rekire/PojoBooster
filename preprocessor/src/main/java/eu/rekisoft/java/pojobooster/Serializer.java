@@ -15,7 +15,9 @@ import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
 
+import eu.rekisoft.java.pojotoolkit.AnnotatedClass;
 import eu.rekisoft.java.pojotoolkit.Extension;
+import eu.rekisoft.java.pojotoolkit.ExtensionSettings;
 
 /**
  * Created on 17.07.2016.
@@ -25,11 +27,12 @@ import eu.rekisoft.java.pojotoolkit.Extension;
 public class Serializer extends Extension {
     private long hash;
 
-    public Serializer(@NonNull AnnotatedClass annotatedClass, @NonNull RoundEnvironment environment) {
-        super(annotatedClass, environment);String hashInfo = annotatedClass.targetType.toString();
+    public Serializer(@NonNull ExtensionSettings settings) {
+        super(settings);
+        String hashInfo = annotatedClass.targetType.toString();
         for(AnnotatedClass.Member member : annotatedClass.members) {
             Element elem = member.element;
-            eu.rekisoft.java.pojotoolkit.Field field = member.annotation;
+            Field field = member.annotation;
             String message = "Field annotation found in " + elem.getSimpleName()
                     + " with " + elem.getSimpleName() + " -> " + field.value();
             //System.out.println(elem.getEnclosingElement().asType() + " - " + elem.asType() + " " + elem.getSimpleName());

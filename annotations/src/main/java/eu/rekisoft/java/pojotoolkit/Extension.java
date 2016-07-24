@@ -8,9 +8,7 @@ import com.squareup.javapoet.TypeName;
 
 import java.util.List;
 
-import javax.annotation.processing.RoundEnvironment;
-
-import eu.rekisoft.java.pojobooster.AnnotatedClass;
+import javax.lang.model.util.Types;
 
 /**
  * Created on 17.07.2016.
@@ -18,12 +16,18 @@ import eu.rekisoft.java.pojobooster.AnnotatedClass;
  * @author René Kilczan
  */
 public abstract class Extension {
-    @NonNull protected final AnnotatedClass annotatedClass;
-    @NonNull private final RoundEnvironment environment;
+    @NonNull
+    protected final AnnotatedClass annotatedClass;
+    @NonNull
+    private final ExtensionSettings settings;
 
-    public Extension(@NonNull AnnotatedClass annotatedClass, @NonNull RoundEnvironment environment) {
-        this.annotatedClass = annotatedClass;
-        this.environment = environment;
+    public Extension(@NonNull ExtensionSettings settings) {
+        this.annotatedClass = settings.annotatedClass;
+        this.settings = settings;
+    }
+
+    protected Types getTypeHelper() {
+        return settings.processingEnv.getTypeUtils();
     }
 
     @NonNull

@@ -1,4 +1,4 @@
-package eu.rekisoft.java.pojotoolkit;
+package eu.rekisoft.java.pojobooster;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
