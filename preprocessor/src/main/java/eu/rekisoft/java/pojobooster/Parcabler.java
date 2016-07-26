@@ -61,7 +61,6 @@ public class Parcabler extends Extension {
                 .addModifiers(Modifier.PUBLIC)
                 .addParameter(Parcel.class, "in");
         for(AnnotatedClass.Member member : annotatedClass.members) {
-
             TypeKind fieldKind = member.element.asType().getKind();
             String suffix = "";
             if(fieldKind == TypeKind.ARRAY) {
@@ -70,11 +69,47 @@ public class Parcabler extends Extension {
             }
             String args = "";
             String type = null;
+            TypeName castTo = null;
             switch(fieldKind) {
             case BOOLEAN:
-                writeToParcel.addStatement("dest.writeByte($L ? 0 : 1)", member.element);
-                continue;
+                if(suffix.isEmpty()) {
+                    writeToParcel.addStatement("dest.writeByte(($T)($L ? 0 : 1))", TypeName.BYTE, member.element);
+                    constructor.addStatement("$L = in.readByte() == 1", member.element.toString());
+                    continue;
+                } else {
+                    type = "Boolean";
+                }
+                break;
+            case CHAR:
+                if(suffix.isEmpty()) {
+                    castTo = TypeName.CHAR;
+                    type = "Int";
+                } else {
+                    writeToParcel.addStatement("dest.writeCharArray($L)", member.element);
+                    constructor.addStatement("$L = in.createCharArray()", member.element);
+                    continue;
+                }
+                break;
             case SHORT:
+                if(suffix.isEmpty()) {
+                    castTo = TypeName.SHORT;
+                    type = "Int";
+                } else {
+                    writeToParcel.addStatement("// convert short[] to int[]", member.element);
+                    writeToParcel.addStatement("$T[] $LAsIntArray = new $T[$L.length]", TypeName.INT, member.element, TypeName.INT, member.element);
+                    writeToParcel.beginControlFlow("for(int i = 0; i < $LAsIntArray.length; i++)", member.element);
+                    writeToParcel.addStatement("$LAsIntArray[i] = ($T)$L[i]", member.element, TypeName.INT, member.element);
+                    writeToParcel.endControlFlow();
+                    writeToParcel.addStatement("dest.writeIntArray($LAsIntArray)", member.element);
+                    constructor.addStatement("// convert int[] to short[]", member.element);
+                    constructor.addStatement("$T[] $LAsIntArray = in.createIntArray()", TypeName.INT, member.element);
+                    constructor.addStatement("$L = new $T[$LAsIntArray.length]", member.element, TypeName.SHORT, member.element);
+                    constructor.beginControlFlow("for(int i = 0; i < $LAsIntArray.length; i++)", member.element);
+                    constructor.addStatement("$L[i] = ($T)$LAsIntArray[i]", member.element, TypeName.SHORT, member.element);
+                    constructor.endControlFlow();
+                    continue;
+                }
+                break;
             case INT:
                 type = "Int";
                 break;
@@ -130,15 +165,21 @@ public class Parcabler extends Extension {
                 break;
             case ARRAY:
             default:
-                throw new RuntimeException("Not supported! " + fieldKind.name() + " " + member.element.toString());
+                throw new RuntimeException("Not supported! " + fieldKind.name() + " " + member.element);
             }
-            writeToParcel.addStatement("dest.write$L$L($L$L)", type, suffix, member.element.toString(), args);
+            writeToParcel.addStatement("dest.write$L$L($L$L)", type, suffix, member.element, args);
             if("Parcelable".equals(type)) {
-                constructor.addStatement("$L = in.readParcelable$L($L.getClass().getClassLoader())", member.element.toString(), suffix, member.element.toString());
+                constructor.addStatement("$L = in.readParcelable$L($L.getClass().getClassLoader())", member.element, suffix, member.element);
             } else if("Serializable".equals(type)) {
-                constructor.addStatement("$L = ($L)in.readSerializable$L()", member.element.toString(), member.element.asType().toString(), suffix);
+                constructor.addStatement("$L = ($T)in.readSerializable$L()", member.element.toString(), member.element, suffix);
+            } else if(castTo != null) {
+                constructor.addStatement("$L = ($T$L)in.read$L$L()", member.element, castTo, suffix.isEmpty() ? suffix : "[]", type, suffix);
+            } else if("Value".equals(type)) {
+                constructor.addStatement("$L = ($T)in.read$L$L($T.class.getClassLoader())", member.element, member.element.asType(), type, suffix, member.element.asType());
+            } else if(suffix.isEmpty()) {
+                constructor.addStatement("$L = in.read$L$L()", member.element, type, suffix);
             } else {
-                constructor.addStatement("$L = in.read$L$L()", member.element.toString(), type, suffix);
+                constructor.addStatement("$L = in.create$L$L()", member.element, type, suffix);
             }
         }
         methods.add(writeToParcel.build());
@@ -158,14 +199,14 @@ public class Parcabler extends Extension {
                         .addModifiers(Modifier.PUBLIC)
                         .addParameter(Parcel.class, "source")
                         .returns(className)
-                        .addStatement("return new $L($N)", className, "source")
+                        .addStatement("return new $T($N)", className, "source")
                         .build())
                 .addMethod(MethodSpec.methodBuilder("newArray")
                         .addAnnotation(Override.class)
                         .addModifiers(Modifier.PUBLIC)
                         .addParameter(int.class, "size")
                         .returns(ArrayTypeName.of(className))
-                        .addStatement("return new $L[$N]", className, "size")
+                        .addStatement("return new $T[$N]", className, "size")
                         .build())
                 .build();
 
