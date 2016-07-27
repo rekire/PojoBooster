@@ -1,5 +1,6 @@
 package eu.rekisoft.java.pojobooster;
 
+import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
@@ -14,12 +15,15 @@ import com.squareup.javapoet.TypeSpec;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
 import javax.lang.model.element.Modifier;
 import javax.lang.model.type.ArrayType;
+import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import javax.lang.model.util.Types;
 
 import eu.rekisoft.java.pojotoolkit.AnnotatedClass;
 import eu.rekisoft.java.pojotoolkit.Extension;
@@ -130,19 +134,21 @@ public class Parcabler extends Extension {
                 System.out.println("Error with " + member.element.asType());
             case DECLARED:
                 System.out.println("Processing " + member.element.asType());
-                if(String.class.getName().equals(member.element.asType().toString())) {
+                if(Bundle.class.getName().equals(member.element.asType().toString())) {
+                    type = "Bundle";
+                } else if(String.class.getName().equals(member.element.asType().toString())) {
                     type = "String";
-                } else /*if(!annotatedClass.interfaces.isEmpty()) {
-                    for (TypeName anInterface : annotatedClass.interfaces) {
-                        if(Parcelable.class.getName().equals(anInterface.toString())) {
-                            type = "Parcelable";
-                            break;
-                        } else if(java.io.Serializable.class.getName().equals(anInterface.toString())) {
-                            type = "Serializable";
-                            break;
-                        }
+                } else if(List.class.getName().equals(member.element.getSimpleName().toString())) {
+                    type = "List";
+                    List<? extends TypeMirror> generics = ((DeclaredType) member.element).getTypeArguments();
+                    if(!generics.isEmpty()) {
+                        TypeMirror generic = generics.get(0);
+                        // TODO check type if the generic is supported
+                        //if(Types.isSameType(generic, getTypeHelper().getT)) {
+
+                        //}
                     }
-                }*/ {
+                } else {
                     for(TypeMirror supertype : getTypeHelper().directSupertypes(member.element.asType())) {
                         //System.out.println("member has implemented: " + supertype.toString());
                         // TODO check also its supertype
@@ -174,7 +180,7 @@ public class Parcabler extends Extension {
                 constructor.addStatement("$L = ($T)in.readSerializable$L()", member.element.toString(), member.element, suffix);
             } else if(castTo != null) {
                 constructor.addStatement("$L = ($T$L)in.read$L$L()", member.element, castTo, suffix.isEmpty() ? suffix : "[]", type, suffix);
-            } else if("Value".equals(type)) {
+            } else if("Value".equals(type) || "Bundle".equals(type)) {
                 constructor.addStatement("$L = ($T)in.read$L$L($T.class.getClassLoader())", member.element, member.element.asType(), type, suffix, member.element.asType());
             } else if(suffix.isEmpty()) {
                 constructor.addStatement("$L = in.read$L$L()", member.element, type, suffix);

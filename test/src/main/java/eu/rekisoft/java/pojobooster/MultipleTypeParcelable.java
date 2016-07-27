@@ -1,5 +1,10 @@
 package eu.rekisoft.java.pojobooster;
 
+import android.os.Bundle;
+
+import java.util.List;
+
+import java.util.Date;
 import java.util.UUID;
 
 /**
@@ -59,4 +64,22 @@ abstract class MultipleTypeParcelable {
     float[] floatArray;
     @Field
     double[] doubleArray;
+    @Field
+    MyEnum aEnum;
+    @Field
+    Date date;
+    @Field
+    Bundle bundle;
+    //@Field
+    //SparseArray sparseArray;
+    @Field
+    List<String> list;
+    //@Field
+    //Map<String, String> map;
+
+    public enum MyEnum {
+        foo,
+        bar,
+        foobar
+    }
 }
