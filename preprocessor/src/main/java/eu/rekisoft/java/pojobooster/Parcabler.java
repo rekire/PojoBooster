@@ -1,5 +1,6 @@
 package eu.rekisoft.java.pojobooster;
 
+import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -32,6 +33,7 @@ import eu.rekisoft.java.pojotoolkit.ExtensionSettings;
  *
  * @author René Kilczan
  */
+@SuppressLint("NewApi")
 public class Parcabler extends Extension {
 
     public Parcabler(@NonNull ExtensionSettings settings) {
@@ -138,9 +140,12 @@ public class Parcabler extends Extension {
                 } else if(String.class.getName().equals(member.element.asType().toString())) {
                     type = "String";
                 } else if(member.element.asType().toString().startsWith(List.class.getName() + "<")) {
-                    //type = "List";
+                    suffix = "List";
                     String typeName = member.element.asType().toString();
-                    type = typeName.substring(typeName.indexOf("<") + 1, typeName.length() - 1) + "List";
+                    typeName = typeName.substring(typeName.indexOf("<") + 1, typeName.length() - 1);
+                    if(String.class.getName().equals(typeName)) {
+                        type = "String";
+                    }
                 } else {
                     for(TypeMirror supertype : getTypeHelper().directSupertypes(member.element.asType())) {
                         //System.out.println("member has implemented: " + supertype.toString());
@@ -167,16 +172,21 @@ public class Parcabler extends Extension {
                 throw new RuntimeException("Not supported! " + fieldKind.name() + " " + member.element);
             }
             writeToParcel.addStatement("dest.write$L$L($L$L)", type, suffix, member.element, args);
+            if("List".equals(suffix)) {
+                suffix = "ArrayList";
+            }
             if("Parcelable".equals(type)) {
                 constructor.addStatement("$L = in.readParcelable$L($L.getClass().getClassLoader())", member.element, suffix, member.element);
             } else if("Serializable".equals(type)) {
                 constructor.addStatement("$L = ($T)in.readSerializable$L()", member.element.toString(), member.element, suffix);
             } else if(castTo != null) {
                 constructor.addStatement("$L = ($T$L)in.read$L$L()", member.element, castTo, suffix.isEmpty() ? suffix : "[]", type, suffix);
-            } else if("Value".equals(type) || "Bundle".equals(type)) {
+            } else if("Value".equals(type)) {
                 constructor.addStatement("$L = ($T)in.read$L$L($T.class.getClassLoader())", member.element, member.element.asType(), type, suffix, member.element.asType());
+            } else if("Bundle".equals(type)) {
+                constructor.addStatement("$L = in.read$L($T.class.getClassLoader())", member.element, type, member.element.asType());
             } else if(suffix.isEmpty()) {
-                constructor.addStatement("$L = in.read$L$L()", member.element, type, suffix);
+                constructor.addStatement("$L = in.read$L()", member.element, type);
             } else {
                 constructor.addStatement("$L = in.create$L$L()", member.element, type, suffix);
             }
