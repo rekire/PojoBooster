@@ -15,7 +15,6 @@ import com.squareup.javapoet.TypeSpec;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 
 import javax.lang.model.element.Modifier;
@@ -23,7 +22,6 @@ import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import javax.lang.model.util.Types;
 
 import eu.rekisoft.java.pojotoolkit.AnnotatedClass;
 import eu.rekisoft.java.pojotoolkit.Extension;
@@ -133,21 +131,16 @@ public class Parcabler extends Extension {
                 // TODO check if the we generate this class
                 System.out.println("Error with " + member.element.asType());
             case DECLARED:
-                System.out.println("Processing " + member.element.asType());
+                System.out.println("Processing " + member.element.asType() + " (" + member.element.asType().getClass() + ")");
+
                 if(Bundle.class.getName().equals(member.element.asType().toString())) {
                     type = "Bundle";
                 } else if(String.class.getName().equals(member.element.asType().toString())) {
                     type = "String";
-                } else if(List.class.getName().equals(member.element.getSimpleName().toString())) {
-                    type = "List";
-                    List<? extends TypeMirror> generics = ((DeclaredType) member.element).getTypeArguments();
-                    if(!generics.isEmpty()) {
-                        TypeMirror generic = generics.get(0);
-                        // TODO check type if the generic is supported
-                        //if(Types.isSameType(generic, getTypeHelper().getT)) {
-
-                        //}
-                    }
+                } else if(member.element.asType().toString().startsWith(List.class.getName() + "<")) {
+                    //type = "List";
+                    String typeName = member.element.asType().toString();
+                    type = typeName.substring(typeName.indexOf("<") + 1, typeName.length() - 1) + "List";
                 } else {
                     for(TypeMirror supertype : getTypeHelper().directSupertypes(member.element.asType())) {
                         //System.out.println("member has implemented: " + supertype.toString());

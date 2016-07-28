@@ -30,3 +30,12 @@ dependencies {
     provided 'com.google.android:annotations:4.1.1.4'
     provided 'com.android.databinding:baseLibrary:2.2.0-alpha5'
 }
+
+task deleteGeneratedCode(type: Delete) {
+    delete "src/generated"
+}
+
+if (project.tasks.findByName('clean')) {
+    //logger.debug('Found build task, making it dependant on assemble...')
+    project.tasks.getByName('clean').dependsOn project.deleteGeneratedCode
+}
