@@ -42,12 +42,9 @@ public class Jsoner extends Extension {
         method.addStatement("StringBuilder sb = new StringBuilder(\"{\")");
         String delimiter = "";
         for(AnnotatedClass.Member member : annotatedClass.members) {
-            Field field = null; //FIXME this information is mandatory: member.annotation;
-            String fieldName;
-            if(field == null || field.value().isEmpty()) {
+            String fieldName = (String)member.getAnnotatedProperty(Field.class, "value");
+            if(fieldName == null || fieldName.isEmpty()) {
                 fieldName = member.element.getSimpleName().toString();
-            } else {
-                fieldName = field.value();
             }
             method.addStatement("sb.append(\"$L\\\"$L\\\":\")", delimiter, fieldName);
             if(delimiter.isEmpty()) {
@@ -55,13 +52,13 @@ public class Jsoner extends Extension {
             }
 
             // TODO add type safety
-            addElementToJson(method, member.element, field);
+            addElementToJson(method, member.element);
         }
         method.addStatement("return sb.toString()");
         return Collections.singletonList(method.build());
     }
 
-    private void addElementToJson(MethodSpec.Builder method, Element elem, Field annotation) {//} throws IOException {
+    private void addElementToJson(MethodSpec.Builder method, Element elem) {//} throws IOException {
         if(!elem.asType().getKind().isPrimitive()) {
             method.beginControlFlow("if($L == null)", elem.getSimpleName())
                     .addStatement("sb.append(\"null\")")

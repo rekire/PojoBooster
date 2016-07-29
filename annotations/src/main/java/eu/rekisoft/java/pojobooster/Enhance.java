@@ -13,7 +13,6 @@ import eu.rekisoft.java.pojotoolkit.*;
  *
  * @author René Kilczan
  */
-@ReflectiveAnnotation
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.TYPE)
 public @interface Enhance {

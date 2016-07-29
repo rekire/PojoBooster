@@ -3,11 +3,17 @@ package eu.rekisoft.java.pojotoolkit;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.TypeName;
 
+import java.lang.annotation.Annotation;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.AnnotationValue;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 
@@ -30,7 +36,6 @@ public class AnnotatedClass {
 
     // package local to avoid that "external" people initialize this class
     AnnotatedClass(List<Class<?>> extensions, ClassName targetType, ClassName sourceType, List<Element> fields, List<Element> methods, TypeElement type) {
-        // TODO the collected data should been stored in a generated "ReflectedAnnotation"
         this.extensions = (List<Class<? extends Extension>>)(Object)extensions;
         this.targetType = targetType;
         this.sourceType = sourceType;
@@ -45,23 +50,40 @@ public class AnnotatedClass {
     private List<Member> convertFields(List<Element> fields) {
         List<Member> list = new ArrayList<>(fields.size());
         for(Element field : fields) {
-            list.add(new Member(field));
+            Map<String, Map<? extends ExecutableElement, ? extends AnnotationValue>> annotations = new HashMap<>(fields.size());
+            for(AnnotationMirror annotationMirror : field.getAnnotationMirrors()) {
+                annotations.put(annotationMirror.getAnnotationType().toString(), annotationMirror.getElementValues());
+            }
+            list.add(new Member(field, annotations));
         }
         return list;
     }
 
     public static class Member {
-        // TODO add information about the annotations of this field, this is required by the JSON extension
+        private final Map<String, Map<? extends ExecutableElement, ? extends AnnotationValue>> annotations;
         public final Element element;
         public final TypeMirror type;
         public final String typeName;
         public final String name;
 
-        public Member(Element element) {
+        public Member(Element element, Map<String, Map<? extends ExecutableElement, ? extends AnnotationValue>> annotations) {
             this.type = element.asType();
             this.typeName = type.toString();
             this.name = element.toString();
             this.element = element;
+            this.annotations = annotations;
+        }
+
+        public Object getAnnotatedProperty(Class<? extends Annotation> type, String field) {
+            Map<? extends ExecutableElement, ? extends AnnotationValue> entries = annotations.get(type.getName());
+            if(entries != null) {
+                for(Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : entries.entrySet()) {
+                    if(field.equals(entry.getKey().getSimpleName().toString())) {
+                        return entry.getValue().getValue();
+                    }
+                }
+            }
+            return null;
         }
     }
 }
