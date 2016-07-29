@@ -20,7 +20,6 @@ import java.util.List;
 
 import javax.lang.model.element.Modifier;
 import javax.lang.model.type.ArrayType;
-import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
@@ -139,13 +138,9 @@ public class Parcabler extends Extension {
                     type = "Bundle";
                 } else if(String.class.getName().equals(member.element.asType().toString())) {
                     type = "String";
-                } else if(member.element.asType().toString().startsWith(List.class.getName() + "<")) {
+                } else if("java.util.List<java.lang.String>".equals(member.element.asType().toString())) {
                     suffix = "List";
-                    String typeName = member.element.asType().toString();
-                    typeName = typeName.substring(typeName.indexOf("<") + 1, typeName.length() - 1);
-                    if(String.class.getName().equals(typeName)) {
-                        type = "String";
-                    }
+                    type = "String";
                 } else {
                     for(TypeMirror supertype : getTypeHelper().directSupertypes(member.element.asType())) {
                         //System.out.println("member has implemented: " + supertype.toString());
