@@ -34,13 +34,12 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
-import javax.lang.model.type.TypeMirror;
+import javax.lang.model.type.TypeKind;
 import javax.tools.JavaFileObject;
 
 import eu.rekisoft.java.pojobooster.Enhance;
-import eu.rekisoft.java.pojobooster.Field;
 
-@SupportedAnnotationTypes({"eu.rekisoft.java.pojobooster.Enhance"/*, "eu.rekisoft.java.pojobooster.PojoBooster.Field"*/})
+@SupportedAnnotationTypes({"eu.rekisoft.java.pojobooster.Enhance"/*, "eu.rekisoft.java.pojobooster.PojoBooster.ReflectiveAnnotation"*/})
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 @TargetApi(24) // STFU
 public class Preprocessor extends AbstractProcessor {
@@ -53,18 +52,6 @@ public class Preprocessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        HashMap<TypeMirror, List<AnnotatedClass.Member>> fieldsPerType = new HashMap<>();
-        for(Element elem : roundEnv.getElementsAnnotatedWith(Field.class)) {
-            TypeMirror typeMirror = elem.getEnclosingElement().asType();
-            Field field = elem.getAnnotation(Field.class);
-            List<AnnotatedClass.Member> list = fieldsPerType.get(typeMirror);
-            if(list == null) {
-                list = new ArrayList<>();
-                fieldsPerType.put(typeMirror, list);
-            }
-            list.add(new AnnotatedClass.Member(field, elem));
-        }
-
         if(sourcePath == null) {
             try {
                 JavaFileObject generationForPath = processingEnv.getFiler().createSourceFile("Killme" + System.currentTimeMillis());
@@ -73,7 +60,7 @@ public class Preprocessor extends AbstractProcessor {
                 writer.flush();
                 writer.close();
                 generationForPath.delete();
-                System.out.println(sourcePath);
+                //System.out.println(sourcePath);
             } catch(IOException e) {
 
             }
@@ -81,20 +68,27 @@ public class Preprocessor extends AbstractProcessor {
 
         Set<? extends Element> instances = roundEnv.getElementsAnnotatedWith(Enhance.class);
         for(Element elem : instances) {
-            if(elem.getKind() == ElementKind.CLASS) {
-                for(AnnotationMirror annotationMirror : elem.getAnnotationMirrors()) {
-                    String annotationClass = annotationMirror.getAnnotationType().asElement().asType().toString();
-                    if(Enhance.class.getName().equals(annotationClass)) {
-
-                        writeFile(collectInfo(annotationMirror, (TypeElement)elem, fieldsPerType), roundEnv);
-
-                        // playground for serialization
-                        List<? extends Element> fields = processingEnv.getElementUtils().getAllMembers((TypeElement)elem);
-                        System.out.println("Test " + fields.size());
-                        for(Element field : fields) {
-                            //System.out.println("#> " + field.asType() + " " + field.getSimpleName() + " ");
-                        }
-                    }
+            if(elem.getKind() != ElementKind.CLASS) {
+                throw new IllegalArgumentException("No class was annotated");
+            }
+            //System.out.println("?> " + elem.getAnnotationMirrors());
+            List<? extends Element> members = processingEnv.getElementUtils().getAllMembers((TypeElement)elem);
+            // look at all methods and fields
+            List<Element> fields = new ArrayList<>();
+            List<Element> methods = new ArrayList<>();
+            for(Element member : members) {
+                // limit to the fields
+                if(member.asType().getKind() == TypeKind.EXECUTABLE) {
+                    methods.add(member);
+                } else if(!member.asType().toString().equals(elem.toString() + "." + member.getSimpleName())) {
+                    fields.add(member);
+                } // else we have a nested enum or nested class
+            }
+            for(AnnotationMirror annotationMirror : elem.getAnnotationMirrors()) {
+                String annotationClass = annotationMirror.getAnnotationType().asElement().asType().toString();
+                // select our annotation
+                if(Enhance.class.getName().equals(annotationClass)) {
+                    writeFile(collectInfo(annotationMirror, (TypeElement)elem, fields, methods), roundEnv);
                 }
             }
         }
@@ -162,7 +156,7 @@ public class Preprocessor extends AbstractProcessor {
     }
 
     @SuppressWarnings("unchecked")
-    private AnnotatedClass collectInfo(AnnotationMirror annotationMirror, TypeElement type, HashMap<TypeMirror, List<AnnotatedClass.Member>> fieldsPerType) {
+    private AnnotatedClass collectInfo(AnnotationMirror annotationMirror, TypeElement type, List<Element> fields, List<Element> methods) {
         List<Class<?>> extensions = new ArrayList<>();
         String targetName = type.getSimpleName().toString();
         for(Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : annotationMirror.getElementValues().entrySet()) {
@@ -183,7 +177,7 @@ public class Preprocessor extends AbstractProcessor {
         }
         String packageName = type.getQualifiedName().toString();
         packageName = packageName.substring(0, packageName.indexOf(type.getSimpleName().toString()));
-        return new AnnotatedClass(extensions, ClassName.bestGuess(packageName + targetName), ClassName.bestGuess(type.toString()), fieldsPerType.get(type.asType()), type);
+        return new AnnotatedClass(extensions, ClassName.bestGuess(packageName + targetName), ClassName.bestGuess(type.toString()), fields, methods, type);
     }
 
     private Map.Entry<TypeElement, DeclaredType> getType(String className) {

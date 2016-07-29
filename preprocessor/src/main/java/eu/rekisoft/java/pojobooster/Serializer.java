@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
 
@@ -32,9 +31,9 @@ public class Serializer extends Extension {
         String hashInfo = annotatedClass.targetType.toString();
         for(AnnotatedClass.Member member : annotatedClass.members) {
             Element elem = member.element;
-            Field field = member.annotation;
-            String message = "Field annotation found in " + elem.getSimpleName()
-                    + " with " + elem.getSimpleName() + " -> " + field.value();
+            //Field field = member.annotation;
+            //String message = "Field annotation found in " + elem.getSimpleName()
+            //        + " with " + elem.getSimpleName() + " -> " + field.value();
             //System.out.println(elem.getEnclosingElement().asType() + " - " + elem.asType() + " " + elem.getSimpleName());
             hashInfo += "\n" + elem.asType() + " " + elem.getSimpleName();
             //classes.get(typeElement).add(elem);

@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
 
@@ -43,9 +42,9 @@ public class Jsoner extends Extension {
         method.addStatement("StringBuilder sb = new StringBuilder(\"{\")");
         String delimiter = "";
         for(AnnotatedClass.Member member : annotatedClass.members) {
-            Field field = member.annotation;
+            Field field = null; //FIXME this information is mandatory: member.annotation;
             String fieldName;
-            if(field.value().isEmpty()) {
+            if(field == null || field.value().isEmpty()) {
                 fieldName = member.element.getSimpleName().toString();
             } else {
                 fieldName = field.value();

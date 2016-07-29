@@ -77,7 +77,7 @@ public class Parcabler extends Extension {
             case BOOLEAN:
                 if(suffix.isEmpty()) {
                     writeToParcel.addStatement("dest.writeByte(($T)($L ? 0 : 1))", TypeName.BYTE, member.element);
-                    constructor.addStatement("$L = in.readByte() == 1", member.element.toString());
+                    constructor.addStatement("$L = in.readByte() == 1", member.element);
                     continue;
                 } else {
                     type = "Boolean";
@@ -132,15 +132,21 @@ public class Parcabler extends Extension {
                 // TODO check if the we generate this class
                 System.out.println("Error with " + member.element.asType());
             case DECLARED:
-                System.out.println("Processing " + member.element.asType() + " (" + member.element.asType().getClass() + ")");
+                //System.out.println("Processing " + member.element.asType() + " (" + member.element.asType().getClass() + ")");
 
                 if(Bundle.class.getName().equals(member.element.asType().toString())) {
                     type = "Bundle";
                 } else if(String.class.getName().equals(member.element.asType().toString())) {
                     type = "String";
-                } else if("java.util.List<java.lang.String>".equals(member.element.asType().toString())) {
+                } else if(member.element.asType().toString().startsWith(List.class.getName() + "<")) {
                     suffix = "List";
-                    type = "String";
+                    String typeName = member.element.asType().toString();
+                    //DeclaredType declaredType = (DeclaredType)((TypeElement)member.element.asType()).getInterfaces().get(0);
+                    //System.out.println("###> " + declaredType);
+                    typeName = typeName.substring(typeName.indexOf("<") + 1, typeName.length() - 1);
+                    if(String.class.getName().equals(typeName)) {
+                        type = "String";
+                    }
                 } else {
                     for(TypeMirror supertype : getTypeHelper().directSupertypes(member.element.asType())) {
                         //System.out.println("member has implemented: " + supertype.toString());
@@ -159,7 +165,7 @@ public class Parcabler extends Extension {
                     type = "Value";
                 }
 
-                System.out.println(annotatedClass.targetType + " has this interfaces " + annotatedClass.interfaces.size());
+                //System.out.println(annotatedClass.targetType + " has this interfaces " + annotatedClass.interfaces.size());
                 //System.out.println(((DeclaredType)element.getKey()).asElement());
                 break;
             case ARRAY:

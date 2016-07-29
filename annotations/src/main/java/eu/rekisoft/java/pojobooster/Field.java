@@ -8,6 +8,7 @@ import java.lang.annotation.Target;
 /**
  * Created by rene on 03.06.2016.
  */
+@ReflectiveAnnotation
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.FIELD)
 public @interface Field {
