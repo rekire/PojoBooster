@@ -1,16 +1,17 @@
-package eu.rekisoft.java.pojotoolkit;
+package eu.rekisoft.java.pojobooster;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.Locale;
 
 /**
- * Created on 03.06.2016.
- *
- * @author René Kilczan
+ * Created on 30.07.2016.
  */
 @Retention(RetentionPolicy.SOURCE)
-@Target(ElementType.TYPE)
-public @interface Parcelable {
+@Target(ElementType.FIELD)
+public @interface Formatter {
+    String value();
+    String locale() default "";
 }

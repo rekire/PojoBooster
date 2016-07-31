@@ -14,7 +14,7 @@ import eu.rekisoft.java.pojotoolkit.Serializable;
 @JSON
 @Pool
 @Serializable
-@Enhance(extensions = {Serializer.class, Parcabler.class}, name = "Example")
+@Enhance(extensions = {Serializer.class, ParcelPacker.class}, name = "Example")
 abstract class Test {
     @Field
     int age;

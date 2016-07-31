@@ -12,7 +12,7 @@ import java.util.UUID;
  *
  * @author René Kilczan
  */
-@Enhance(extensions = Parcabler.class, name = "MultipleTypeParcelableResult")
+@Enhance(extensions = ParcelPacker.class, name = "MultipleTypeParcelableResult")
 abstract class MultipleTypeParcelable {
     boolean aBoolean;
     byte aByte;

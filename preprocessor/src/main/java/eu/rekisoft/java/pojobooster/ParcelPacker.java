@@ -33,9 +33,9 @@ import eu.rekisoft.java.pojotoolkit.ExtensionSettings;
  * @author René Kilczan
  */
 @SuppressLint("NewApi")
-public class Parcabler extends Extension {
+public class ParcelPacker extends Extension {
 
-    public Parcabler(@NonNull ExtensionSettings settings) {
+    public ParcelPacker(@NonNull ExtensionSettings settings) {
         super(settings);
     }
 

@@ -50,7 +50,7 @@ public class AnnotatedClass {
     private List<Member> convertFields(List<Element> fields) {
         List<Member> list = new ArrayList<>(fields.size());
         for(Element field : fields) {
-            Map<String, Map<? extends ExecutableElement, ? extends AnnotationValue>> annotations = new HashMap<>(fields.size());
+            Map<String, Map<? extends ExecutableElement, ? extends AnnotationValue>> annotations = new HashMap<>();
             for(AnnotationMirror annotationMirror : field.getAnnotationMirrors()) {
                 annotations.put(annotationMirror.getAnnotationType().toString(), annotationMirror.getElementValues());
             }
@@ -61,6 +61,7 @@ public class AnnotatedClass {
 
     public static class Member {
         private final Map<String, Map<? extends ExecutableElement, ? extends AnnotationValue>> annotations;
+        @Deprecated
         public final Element element;
         public final TypeMirror type;
         public final String typeName;

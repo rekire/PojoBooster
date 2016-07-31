@@ -7,6 +7,7 @@ import java.lang.annotation.Target;
 import java.security.cert.*;
 
 import eu.rekisoft.java.pojotoolkit.*;
+import eu.rekisoft.java.pojotoolkit.Extension;
 
 /**
  * Created on 17.07.2016.
@@ -16,6 +17,6 @@ import eu.rekisoft.java.pojotoolkit.*;
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.TYPE)
 public @interface Enhance {
-    Class<? extends eu.rekisoft.java.pojotoolkit.Extension>[] extensions();
+    Class<? extends Extension>[] extensions();
     String name();
 }
