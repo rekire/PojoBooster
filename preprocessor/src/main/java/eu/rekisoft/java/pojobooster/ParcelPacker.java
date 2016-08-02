@@ -68,7 +68,7 @@ public class ParcelPacker extends Extension {
             String suffix = "";
             if(fieldKind == TypeKind.ARRAY) {
                 suffix = "Array";
-                fieldKind = ((ArrayType)member.element.asType()).getComponentType().getKind();
+                fieldKind = ((ArrayType)member.type).getComponentType().getKind();
             }
             String args = "";
             String type = null;
@@ -76,8 +76,8 @@ public class ParcelPacker extends Extension {
             switch(fieldKind) {
             case BOOLEAN:
                 if(suffix.isEmpty()) {
-                    writeToParcel.addStatement("dest.writeByte(($T)($L ? 0 : 1))", TypeName.BYTE, member.element);
-                    constructor.addStatement("$L = in.readByte() == 1", member.element);
+                    writeToParcel.addStatement("dest.writeByte(($T)($L ? 0 : 1))", TypeName.BYTE, member.name);
+                    constructor.addStatement("$L = in.readByte() == 1", member.name);
                     continue;
                 } else {
                     type = "Boolean";
@@ -88,8 +88,8 @@ public class ParcelPacker extends Extension {
                     castTo = TypeName.CHAR;
                     type = "Int";
                 } else {
-                    writeToParcel.addStatement("dest.writeCharArray($L)", member.element);
-                    constructor.addStatement("$L = in.createCharArray()", member.element);
+                    writeToParcel.addStatement("dest.writeCharArray($L)", member.name);
+                    constructor.addStatement("$L = in.createCharArray()", member.name);
                     continue;
                 }
                 break;
@@ -98,17 +98,17 @@ public class ParcelPacker extends Extension {
                     castTo = TypeName.SHORT;
                     type = "Int";
                 } else {
-                    writeToParcel.addStatement("// convert short[] to int[]", member.element);
-                    writeToParcel.addStatement("$T[] $LAsIntArray = new $T[$L.length]", TypeName.INT, member.element, TypeName.INT, member.element);
-                    writeToParcel.beginControlFlow("for(int i = 0; i < $LAsIntArray.length; i++)", member.element);
-                    writeToParcel.addStatement("$LAsIntArray[i] = ($T)$L[i]", member.element, TypeName.INT, member.element);
+                    writeToParcel.addStatement("// convert short[] to int[]");
+                    writeToParcel.addStatement("$T[] $LAsIntArray = new $T[$L.length]", TypeName.INT, member.name, TypeName.INT, member.name);
+                    writeToParcel.beginControlFlow("for(int i = 0; i < $LAsIntArray.length; i++)", member.name);
+                    writeToParcel.addStatement("$LAsIntArray[i] = ($T)$L[i]", member.name, TypeName.INT, member.name);
                     writeToParcel.endControlFlow();
-                    writeToParcel.addStatement("dest.writeIntArray($LAsIntArray)", member.element);
-                    constructor.addStatement("// convert int[] to short[]", member.element);
-                    constructor.addStatement("$T[] $LAsIntArray = in.createIntArray()", TypeName.INT, member.element);
-                    constructor.addStatement("$L = new $T[$LAsIntArray.length]", member.element, TypeName.SHORT, member.element);
-                    constructor.beginControlFlow("for(int i = 0; i < $LAsIntArray.length; i++)", member.element);
-                    constructor.addStatement("$L[i] = ($T)$LAsIntArray[i]", member.element, TypeName.SHORT, member.element);
+                    writeToParcel.addStatement("dest.writeIntArray($LAsIntArray)", member.name);
+                    constructor.addStatement("// convert int[] to short[]", member.name);
+                    constructor.addStatement("$T[] $LAsIntArray = in.createIntArray()", TypeName.INT, member.name);
+                    constructor.addStatement("$L = new $T[$LAsIntArray.length]", member.name, TypeName.SHORT, member.name);
+                    constructor.beginControlFlow("for(int i = 0; i < $LAsIntArray.length; i++)", member.name);
+                    constructor.addStatement("$L[i] = ($T)$LAsIntArray[i]", member.name, TypeName.SHORT, member.name);
                     constructor.endControlFlow();
                     continue;
                 }
@@ -130,17 +130,17 @@ public class ParcelPacker extends Extension {
                 break;
             case ERROR:
                 // TODO check if the we generate this class
-                System.out.println("Error with " + member.element.asType());
+                System.out.println("Error with " + member.typeName);
             case DECLARED:
                 //System.out.println("Processing " + member.element.asType() + " (" + member.element.asType().getClass() + ")");
 
-                if(Bundle.class.getName().equals(member.element.asType().toString())) {
+                if(Bundle.class.getName().equals(member.typeName)) {
                     type = "Bundle";
-                } else if(String.class.getName().equals(member.element.asType().toString())) {
+                } else if(String.class.getName().equals(member.typeName)) {
                     type = "String";
-                } else if(member.element.asType().toString().startsWith(List.class.getName() + "<")) {
+                } else if(member.typeName.startsWith(List.class.getName() + "<")) {
                     suffix = "List";
-                    String typeName = member.element.asType().toString();
+                    String typeName = member.typeName;
                     //DeclaredType declaredType = (DeclaredType)((TypeElement)member.element.asType()).getInterfaces().get(0);
                     //System.out.println("###> " + declaredType);
                     typeName = typeName.substring(typeName.indexOf("<") + 1, typeName.length() - 1);
@@ -148,7 +148,7 @@ public class ParcelPacker extends Extension {
                         type = "String";
                     }
                 } else {
-                    for(TypeMirror supertype : getTypeHelper().directSupertypes(member.element.asType())) {
+                    for(TypeMirror supertype : getTypeHelper().directSupertypes(member.type)) {
                         //System.out.println("member has implemented: " + supertype.toString());
                         // TODO check also its supertype
                         if(Parcelable.class.getName().equals(supertype.toString())) {
@@ -170,26 +170,26 @@ public class ParcelPacker extends Extension {
                 break;
             case ARRAY:
             default:
-                throw new RuntimeException("Not supported! " + fieldKind.name() + " " + member.element);
+                throw new RuntimeException("Not supported! " + fieldKind.name() + " " + member.name);
             }
-            writeToParcel.addStatement("dest.write$L$L($L$L)", type, suffix, member.element, args);
+            writeToParcel.addStatement("dest.write$L$L($L$L)", type, suffix, member.name, args);
             if("List".equals(suffix)) {
                 suffix = "ArrayList";
             }
             if("Parcelable".equals(type)) {
-                constructor.addStatement("$L = in.readParcelable$L($L.getClass().getClassLoader())", member.element, suffix, member.element);
+                constructor.addStatement("$L = in.readParcelable$L($T.getClass().getClassLoader())", member.name, suffix, member.name);
             } else if("Serializable".equals(type)) {
-                constructor.addStatement("$L = ($T)in.readSerializable$L()", member.element.toString(), member.element, suffix);
+                constructor.addStatement("$L = ($T)in.readSerializable$L()", member.name, member.type, suffix);
             } else if(castTo != null) {
-                constructor.addStatement("$L = ($T$L)in.read$L$L()", member.element, castTo, suffix.isEmpty() ? suffix : "[]", type, suffix);
+                constructor.addStatement("$L = ($T$L)in.read$L$L()", member.name, castTo, suffix.isEmpty() ? suffix : "[]", type, suffix);
             } else if("Value".equals(type)) {
-                constructor.addStatement("$L = ($T)in.read$L$L($T.class.getClassLoader())", member.element, member.element.asType(), type, suffix, member.element.asType());
+                constructor.addStatement("$L = ($T)in.read$L$L($T.class.getClassLoader())", member.name, member.type, type, suffix, member.type);
             } else if("Bundle".equals(type)) {
-                constructor.addStatement("$L = in.read$L($T.class.getClassLoader())", member.element, type, member.element.asType());
+                constructor.addStatement("$L = in.read$L($T.class.getClassLoader())", member.name, type, member.type);
             } else if(suffix.isEmpty()) {
-                constructor.addStatement("$L = in.read$L()", member.element, type);
+                constructor.addStatement("$L = in.read$L()", member.name, type);
             } else {
-                constructor.addStatement("$L = in.create$L$L()", member.element, type, suffix);
+                constructor.addStatement("$L = in.create$L$L()", member.name, type, suffix);
             }
         }
         methods.add(writeToParcel.build());

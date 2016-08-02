@@ -14,7 +14,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
-import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,10 +33,8 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
-import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 
@@ -65,7 +62,6 @@ public class Preprocessor extends AbstractProcessor {
                 writer.flush();
                 writer.close();
                 generationForPath.delete();
-                //System.out.println(sourcePath);
             } catch(IOException e) {
 
             }
@@ -76,7 +72,6 @@ public class Preprocessor extends AbstractProcessor {
             if(elem.getKind() != ElementKind.CLASS) {
                 throw new IllegalArgumentException("No class was annotated");
             }
-            //System.out.println("?> " + elem.getAnnotationMirrors());
             List<? extends Element> members = processingEnv.getElementUtils().getAllMembers((TypeElement)elem);
             // look at all methods and fields
             List<Element> fields = new ArrayList<>();
@@ -99,11 +94,8 @@ public class Preprocessor extends AbstractProcessor {
         }
 
         for(Element elem : roundEnv.getElementsAnnotatedWith(JsonDecorator.class)) {
-            System.out.println(elem + " has args " + ((ExecutableElement)elem).getParameters());
-            ExecutableElement method = (ExecutableElement)elem;
-            TypeMirror returnType = method.getReturnType();
-            List<? extends VariableElement> args = method.getParameters();
-            if(args.size() == 1 && args.get(0).asType().toString().equals(StringBuilder.class.getName())) {
+            Method method = Method.from((ExecutableElement)elem);
+            if(!method.matchesTypes(String.class, StringBuilder.class)) {
                 processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "Yey " + elem + " this is fine!");
             } else {
                 processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "No! " + elem + " has the wrong args!");
@@ -119,7 +111,7 @@ public class Preprocessor extends AbstractProcessor {
         List<FieldSpec> members = new ArrayList<>();
 
         Extension[] extensions = new Extension[annotatedClass.extensions.size()];
-        int i=0;
+        int i = 0;
 
         for(Class<? extends Extension> extension : annotatedClass.extensions) {
             try {
@@ -131,7 +123,7 @@ public class Preprocessor extends AbstractProcessor {
             }
         }
 
-        for (Extension impl : extensions) {
+        for(Extension impl : extensions) {
             methods.addAll(impl.generateCode());
             members.addAll(impl.generateMembers());
             interfaces.addAll(impl.getAttentionalInterfaces());
@@ -181,7 +173,6 @@ public class Preprocessor extends AbstractProcessor {
             if("extensions".equals(entry.getKey().getSimpleName().toString())) {
                 for(AnnotationValue extension : (List<AnnotationValue>)entry.getValue().getValue()) {
                     DeclaredType extensionType = (DeclaredType)extension.getValue();
-                    //System.out.println(extensionType.toString());
                     try {
                         extensions.add(Class.forName(extensionType.toString()));
                     } catch(ReflectiveOperationException e) {
@@ -191,16 +182,9 @@ public class Preprocessor extends AbstractProcessor {
             } else if("name".equals(entry.getKey().getSimpleName().toString())) {
                 targetName = entry.getValue().getValue().toString();
             }
-            //System.out.println(entry.getKey().getSimpleName() + ": " + entry.getValue().getValue());
         }
         String packageName = type.getQualifiedName().toString();
         packageName = packageName.substring(0, packageName.indexOf(type.getSimpleName().toString()));
         return new AnnotatedClass(extensions, ClassName.bestGuess(packageName + targetName), ClassName.bestGuess(type.toString()), fields, methods, type);
-    }
-
-    private Map.Entry<TypeElement, DeclaredType> getType(String className) {
-        TypeElement typeElement = processingEnv.getElementUtils().getTypeElement(className);
-        DeclaredType declaredType = processingEnv.getTypeUtils().getDeclaredType(typeElement);
-        return new HashMap.SimpleEntry<>(typeElement, declaredType);
     }
 }
