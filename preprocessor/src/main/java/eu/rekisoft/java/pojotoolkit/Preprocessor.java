@@ -34,13 +34,17 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
+import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 
 import eu.rekisoft.java.pojobooster.Enhance;
+import eu.rekisoft.java.pojobooster.JsonDecorator;
 
-@SupportedAnnotationTypes({"eu.rekisoft.java.pojobooster.Enhance"/*, "eu.rekisoft.java.pojobooster.PojoBooster.ReflectiveAnnotation"*/})
+@SupportedAnnotationTypes({"eu.rekisoft.java.pojobooster.Enhance", "eu.rekisoft.java.pojobooster.PojoBooster.JsonDecorator"})
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 @TargetApi(24) // STFU
 public class Preprocessor extends AbstractProcessor {
@@ -93,6 +97,19 @@ public class Preprocessor extends AbstractProcessor {
                 }
             }
         }
+
+        for(Element elem : roundEnv.getElementsAnnotatedWith(JsonDecorator.class)) {
+            System.out.println(elem + " has args " + ((ExecutableElement)elem).getParameters());
+            ExecutableElement method = (ExecutableElement)elem;
+            TypeMirror returnType = method.getReturnType();
+            List<? extends VariableElement> args = method.getParameters();
+            if(args.size() == 1 && args.get(0).asType().toString().equals(StringBuilder.class.getName())) {
+                processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "Yey " + elem + " this is fine!");
+            } else {
+                processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "No! " + elem + " has the wrong args!");
+            }
+        }
+
         return true; // no further processing of this annotation type
     }
 
