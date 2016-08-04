@@ -2,8 +2,6 @@ package eu.rekisoft.java.pojobooster;
 
 import java.util.Date;
 
-import eu.rekisoft.java.pojotoolkit.JSON;
-
 /**
  * Created by rene on 17.07.2016.
  */
@@ -25,8 +23,8 @@ abstract class Test2 {
         return sb.toString();
     }
 
-    @JsonDecorator
-    String decorateIt(int foo) {
+    @FactoryOf(Test2.class)
+    public static Test2 fromJson(String json) {
         return null;
     }
 }

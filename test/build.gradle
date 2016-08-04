@@ -22,6 +22,38 @@ sourceSets {
     }
 }
 
+def testDir = file("test/main/java");
+if (testDir.exists()) {
+    // Replace the built-in test task with one that will delegate to jtreg
+    def jtrefFiles = files("/Users/rbair/Downloads/jtreg/lib/testng.jar",
+              "/Users/rbair/Downloads/jtreg/lib/jtreg.jar",
+              "/Users/rbair/Downloads/jtreg/lib/javatest.jar")
+    dependencies {
+//        testCompile ":jtreg-4.1-bin-b05_29_nov_2012.zip"
+//        files("/Users/rbair/Downloads/jtreg/lib/testng.jar",
+//              "/Users/rbair/Downloads/jtreg/lib/jtreg.jar",
+//              "/Users/rbair/Downloads/jtreg/lib/javatest.jar")
+    }
+    tasks.replace("test");
+    test {
+        // Invoke jtreg
+        task jtreg (type: Exec) {
+            dependsOn testClasses
+            group = "Verification"
+//            inputs.dir "src/main/prism-common-native"
+//            outputs.dir "build/main/prism-common-native"
+//            outputs.dir "build/libs"
+            workingDir "."
+            commandLine "java", "-jar", "/Users/rbair/Downloads/jtreg/lib/jtreg.jar", "-v", "-c", "-dir:test/main/java", "-r:build/reports/test", "-w:build/test/whatever", "-avm"
+            commandLine "ls"
+        }
+        dependsOn jtreg
+        group = "Verification"
+    }
+//} else {
+//    tasks.replace("test");
+}
+
 //noinspection GroovyAssignabilityCheck
 dependencies {
     compile project(':annotations')

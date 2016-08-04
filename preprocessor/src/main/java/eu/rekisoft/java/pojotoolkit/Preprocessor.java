@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.annotation.processing.AbstractProcessor;
@@ -39,9 +40,13 @@ import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 
 import eu.rekisoft.java.pojobooster.Enhance;
+import eu.rekisoft.java.pojobooster.FactoryOf;
 import eu.rekisoft.java.pojobooster.JsonDecorator;
 
-@SupportedAnnotationTypes({"eu.rekisoft.java.pojobooster.Enhance", "eu.rekisoft.java.pojobooster.PojoBooster.JsonDecorator"})
+@SupportedAnnotationTypes({
+        "eu.rekisoft.java.pojobooster.Enhance",
+        "eu.rekisoft.java.pojobooster.JsonDecorator",
+        "eu.rekisoft.java.pojobooster.FactoryOf"})
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 @TargetApi(24) // STFU
 public class Preprocessor extends AbstractProcessor {
@@ -100,6 +105,27 @@ public class Preprocessor extends AbstractProcessor {
             } else {
                 processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "No! " + elem + " has the wrong args!");
             }
+        }
+
+        // The idea is to annotate the factory of a interface or the concreate constructor of the desired class.
+        for(Element elem : roundEnv.getElementsAnnotatedWith(FactoryOf.class)) {
+            Method method = Method.from((ExecutableElement)elem);
+            for(AnnotationMirror annotationMirror : elem.getAnnotationMirrors()) {
+                String annotationClass = annotationMirror.getAnnotationType().asElement().asType().toString();
+                // select our annotation
+                if(FactoryOf.class.getName().equals(annotationClass)) {
+                    for(Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : annotationMirror.getElementValues().entrySet()) {
+                        if("value".equals(entry.getKey().getSimpleName().toString())) {
+                            System.out.println("type of " + entry.getValue().getValue().getClass().getName());
+                        }
+                    }
+                }
+            }
+            //if(!method.matchesTypes(Object.class, String.class)) {
+            //    processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "Yey " + elem + " this is fine!");
+            //} else {
+            //    processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "No! " + elem + " has the wrong args!");
+            //}
         }
 
         return true; // no further processing of this annotation type
