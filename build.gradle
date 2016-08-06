@@ -3,23 +3,18 @@
 buildscript {
     repositories {
         jcenter()
-        maven {
-            url "https://plugins.gradle.org/m2/"
-        }
     }
     dependencies {
         // If you want to use always the newest gradle plugin create the file "~/.gradle/gradle.properties" with the content "bleedingEdge=true".
         // Be aware of the consequences, if you get trouble you can set the value to false to disable this behavior.
         classpath 'com.android.tools.build:gradle:' + (project.hasProperty('bleedingEdge') && "true".equals(project.bleedingEdge) ? '+' : project.gradlePluginVersion)
 
-        //classpath 'com.neenbedankt.gradle.plugins:android-apt:1.8'
-        //classpath "gradle.plugin.com.ewerk.gradle.plugins:annotation-processor-plugin:1.0.2"
-
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
     }
 }
 
+// Add the local maven repository from the Android SDK to the known maven repositories.
 Properties properties = new Properties()
 properties.load(project.rootProject.file('local.properties').newDataInputStream())
 def sdkDir = properties.getProperty('sdk.dir')
@@ -33,6 +28,6 @@ allprojects {
     }
 }
 
-//task clean(type: Delete) {
-//    delete rootProject.buildDir
-//}
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}

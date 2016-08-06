@@ -7,7 +7,7 @@ package eu.rekisoft.java.pojobooster;
  *
  * @author René Kilczan
  *
- * @library /annotations/build/libs/annotations.jar /preprocessor/build/libs/preprocessor.jar /javapoet-1.7.0.jar
+ * @library /annotations/build/libs/annotations.jar /preprocessor/build/libs/preprocessor.jar /test/build/libs/javapoet-1.7.0.jar
  * @compile/fail/ref=JsonDecoratorTest.ref JsonDecoratorTest.java
  */
 public class JsonDecoratorTest {

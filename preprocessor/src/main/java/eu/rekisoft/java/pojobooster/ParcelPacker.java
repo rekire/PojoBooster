@@ -177,7 +177,7 @@ public class ParcelPacker extends Extension {
                 suffix = "ArrayList";
             }
             if("Parcelable".equals(type)) {
-                constructor.addStatement("$L = in.readParcelable$L($T.getClass().getClassLoader())", member.name, suffix, member.type);
+                constructor.addStatement("$L = in.readParcelable$L($T.class.getClassLoader())", member.name, suffix, member.type);
             } else if("Serializable".equals(type)) {
                 constructor.addStatement("$L = ($T)in.readSerializable$L()", member.name, member.type, suffix);
             } else if(castTo != null) {

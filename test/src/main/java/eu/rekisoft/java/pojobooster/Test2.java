@@ -18,6 +18,7 @@ abstract class Test2 {
     @Formatter(value = "%.2f€", locale = "de")
     float price;
 
+    /*
     @JsonDecorator
     String decorateIt(StringBuilder sb) {
         return sb.toString();
@@ -27,4 +28,5 @@ abstract class Test2 {
     public static Test2 fromJson(String json) {
         return null;
     }
+    //*/
 }
