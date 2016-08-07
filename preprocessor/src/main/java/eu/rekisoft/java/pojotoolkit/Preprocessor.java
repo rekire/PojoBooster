@@ -15,11 +15,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import javax.annotation.processing.AbstractProcessor;
@@ -35,7 +33,10 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.ExecutableType;
 import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
+import javax.lang.model.type.TypeVariable;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 
@@ -81,10 +82,15 @@ public class Preprocessor extends AbstractProcessor {
             // look at all methods and fields
             List<Element> fields = new ArrayList<>();
             List<Element> methods = new ArrayList<>();
+            List<Element> constructors = new ArrayList<>();
             for(Element member : members) {
                 // limit to the fields
                 if(member.asType().getKind() == TypeKind.EXECUTABLE) {
-                    methods.add(member);
+                    if(member.getSimpleName().toString().equals("<init>")) {
+                        constructors.add(member);
+                    } else {
+                        methods.add(member);
+                    }
                 } else if(!member.asType().toString().equals(elem.toString() + "." + member.getSimpleName())) {
                     fields.add(member);
                 } // else we have a nested enum or nested class
@@ -93,7 +99,7 @@ public class Preprocessor extends AbstractProcessor {
                 String annotationClass = annotationMirror.getAnnotationType().asElement().asType().toString();
                 // select our annotation
                 if(Enhance.class.getName().equals(annotationClass)) {
-                    writeFile(collectInfo(annotationMirror, (TypeElement)elem, fields, methods), roundEnv);
+                    writeFile(collectInfo(annotationMirror, (TypeElement)elem, fields, methods, constructors), constructors, roundEnv);
                 }
             }
         }
@@ -109,7 +115,6 @@ public class Preprocessor extends AbstractProcessor {
 
         // The idea is to annotate the factory of a interface or the concreate constructor of the desired class.
         for(Element elem : roundEnv.getElementsAnnotatedWith(FactoryOf.class)) {
-            Method method = Method.from((ExecutableElement)elem);
             for(AnnotationMirror annotationMirror : elem.getAnnotationMirrors()) {
                 String annotationClass = annotationMirror.getAnnotationType().asElement().asType().toString();
                 // select our annotation
@@ -131,10 +136,39 @@ public class Preprocessor extends AbstractProcessor {
         return true; // no further processing of this annotation type
     }
 
-    private void writeFile(AnnotatedClass annotatedClass, RoundEnvironment environment) {
+    private void writeFile(AnnotatedClass annotatedClass, List<Element> constructors, RoundEnvironment environment) {
         HashSet<TypeName> interfaces = new HashSet<>();
         List<MethodSpec> methods = new ArrayList<>();
         List<FieldSpec> members = new ArrayList<>();
+
+        if(constructors.isEmpty()) {
+            // generate the default constructor
+            methods.add(MethodSpec.constructorBuilder()
+                    .addModifiers(Modifier.PUBLIC)
+                    .addStatement("super()")
+                    .build());
+        } else {
+            // copy the constructors including modifiers
+            for(Element element : constructors) {
+                MethodSpec.Builder constructor = MethodSpec.constructorBuilder();
+                StringBuilder sb = new StringBuilder("super(");
+                List<? extends TypeMirror> argTypes = ((ExecutableType)element.asType()).getParameterTypes();
+                for(int i = 0; i < argTypes.size(); i++) {
+                    // TODO find some trick to read out the real name
+                    String argName = "arg" + i;
+                    if(sb.length() > 6) {
+                        sb.append(", ");
+                    }
+                    sb.append(argName);
+                    constructor.addParameter(ClassName.get(argTypes.get(i)), argName);
+                    //constructor.addParameter(ClassName.get(arg), argName);
+                }
+                sb.append(")");
+                constructor.addStatement(sb.toString());
+                constructor.addModifiers(element.getModifiers());
+                methods.add(constructor.build());
+            }
+        }
 
         Extension[] extensions = new Extension[annotatedClass.extensions.size()];
         int i = 0;
@@ -192,7 +226,7 @@ public class Preprocessor extends AbstractProcessor {
     }
 
     @SuppressWarnings("unchecked")
-    private AnnotatedClass collectInfo(AnnotationMirror annotationMirror, TypeElement type, List<Element> fields, List<Element> methods) {
+    private AnnotatedClass collectInfo(AnnotationMirror annotationMirror, TypeElement type, List<Element> fields, List<Element> methods, List<Element> constructors) {
         List<Class<?>> extensions = new ArrayList<>();
         String targetName = type.getSimpleName().toString();
         for(Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : annotationMirror.getElementValues().entrySet()) {
@@ -211,6 +245,6 @@ public class Preprocessor extends AbstractProcessor {
         }
         String packageName = type.getQualifiedName().toString();
         packageName = packageName.substring(0, packageName.indexOf(type.getSimpleName().toString()));
-        return new AnnotatedClass(extensions, ClassName.bestGuess(packageName + targetName), ClassName.bestGuess(type.toString()), fields, methods, type);
+        return new AnnotatedClass(extensions, ClassName.bestGuess(packageName + targetName), ClassName.bestGuess(type.toString()), fields, methods);
     }
 }

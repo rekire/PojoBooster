@@ -12,7 +12,7 @@ import java.util.UUID;
  *
  * @author René Kilczan
  */
-@Enhance(extensions = ParcelPacker.class, name = "MultipleTypeParcelableResult")
+@Enhance(extensions = {ParcelPacker.class, JsonPacker.class}, name = "MultipleTypeParcelableResult")
 abstract class MultipleTypeParcelable {
     boolean aBoolean;
     byte aByte;
@@ -22,7 +22,8 @@ abstract class MultipleTypeParcelable {
     char aChar;
     float aFloat;
     double aDouble;
-    UUID aSerialziable;
+    String string;
+    UUID aSerializable;
     Boolean boxedBoolean;
     Byte boxedByte;
     Short boxedShort;
@@ -45,6 +46,12 @@ abstract class MultipleTypeParcelable {
     //SparseArray sparseArray;
     List<String> list;
     //Map<String, String> map;
+
+    public MultipleTypeParcelable() {}
+
+    public MultipleTypeParcelable(int blub) {}
+
+    public MultipleTypeParcelable(int blub, Date date) {}
 
     public enum MyEnum {
         foo,

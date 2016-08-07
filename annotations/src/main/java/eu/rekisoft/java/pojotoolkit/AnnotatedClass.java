@@ -14,7 +14,6 @@ import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.AnnotationValue;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 
 /**
@@ -30,17 +29,15 @@ public class AnnotatedClass {
     public final ClassName targetType;
     public final ClassName sourceType;
     public final List<Member> members;
-    public final TypeElement type;
     public final HashSet<TypeName> interfaces;
     public final TypeName superType;
 
     // package local to avoid that "external" people initialize this class
-    AnnotatedClass(List<Class<?>> extensions, ClassName targetType, ClassName sourceType, List<Element> fields, List<Element> methods, TypeElement type) {
-        this.extensions = (List<Class<? extends Extension>>)(Object)extensions;
+    AnnotatedClass(List<Class<?>> extensions, ClassName targetType, ClassName sourceType, List<Element> fields, List<Element> methods) {
+        this.extensions = (List<Class<? extends Extension>>)(List)extensions;
         this.targetType = targetType;
         this.sourceType = sourceType;
         this.members = convertFields(fields);
-        this.type = type;
         // TODO
         // this.methods = methods; // this should be abstracted too
         this.interfaces = new HashSet<>();
@@ -50,11 +47,7 @@ public class AnnotatedClass {
     private List<Member> convertFields(List<Element> fields) {
         List<Member> list = new ArrayList<>(fields.size());
         for(Element field : fields) {
-            Map<String, Map<? extends ExecutableElement, ? extends AnnotationValue>> annotations = new HashMap<>();
-            for(AnnotationMirror annotationMirror : field.getAnnotationMirrors()) {
-                annotations.put(annotationMirror.getAnnotationType().toString(), annotationMirror.getElementValues());
-            }
-            list.add(new Member(field, annotations));
+            list.add(new Member(field));
         }
         return list;
     }
@@ -67,11 +60,16 @@ public class AnnotatedClass {
         public final String typeName;
         public final String name;
 
-        public Member(Element element, Map<String, Map<? extends ExecutableElement, ? extends AnnotationValue>> annotations) {
+        public Member(Element element) {
             this.type = element.asType();
             this.typeName = type.toString();
             this.name = element.toString();
             this.element = element;
+
+            Map<String, Map<? extends ExecutableElement, ? extends AnnotationValue>> annotations = new HashMap<>();
+            for(AnnotationMirror annotationMirror : element.getAnnotationMirrors()) {
+                annotations.put(annotationMirror.getAnnotationType().toString(), annotationMirror.getElementValues());
+            }
             this.annotations = annotations;
         }
 

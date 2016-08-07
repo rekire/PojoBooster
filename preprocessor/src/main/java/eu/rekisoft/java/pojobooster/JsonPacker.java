@@ -11,12 +11,16 @@ import com.squareup.javapoet.TypeName;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
 import javax.lang.model.element.Modifier;
+import javax.lang.model.type.ArrayType;
+import javax.lang.model.type.TypeKind;
 
 import eu.rekisoft.java.pojotoolkit.AnnotatedClass;
 import eu.rekisoft.java.pojotoolkit.Extension;
@@ -68,13 +72,15 @@ public class JsonPacker extends Extension {
     }
 
     private void addElementToJson(MethodSpec.Builder method, AnnotatedClass.Member member) {
-        if(!member.type.getKind().isPrimitive()) {
+        String format = (String)member.getAnnotatedProperty(Formatter.class, "value");
+        LocaleHelper locale = LocaleHelper.from(member);
+        boolean needsNullCheck = /*!isInstanceOf(member, Number.class) && !isInstanceOf(member, Boolean.class) &&*/ !member.type.getKind().isPrimitive() && member.type.getKind() != TypeKind.ARRAY;
+        if(needsNullCheck) {
             method.beginControlFlow("if($L == null)", member.name)
                     .addStatement("sb.append(\"null\")")
                     .nextControlFlow("else");
         }
         boolean isArray = false;
-        String format = (String)member.getAnnotatedProperty(Formatter.class, "value");
         switch(member.type.getKind()) {
         case BOOLEAN:
         case SHORT:
@@ -82,24 +88,67 @@ public class JsonPacker extends Extension {
         case LONG:
         case FLOAT:
         case DOUBLE:
+        case BYTE:
             if(format == null) {
                 method.addStatement("sb.append($L)", member.name);
             } else {
-                addFormatNumberCode(method, member, format);
+                TypeName stringType = ClassName.get(String.class);
+                method.addStatement("sb.append($T.format($L$T$L, $S, $L))", stringType, locale.prefix, locale.type, locale.suffix, format, member.name);
             }
             break;
-        case BYTE:
-            method.addStatement("sb.append(Integer.toHexString($L))", member.name);
+        case CHAR:
+            method.addStatement("sb.append(\"\\\"\").append($L).append(\"\\\"\")", member.name);
             break;
         case ARRAY:
-            isArray = true;
+            method.beginControlFlow("if($L == null)", member.name)
+                    .addStatement("sb.append(\"null\")")
+                    .nextControlFlow("if($L.length == 0)", member.name)
+                    .addStatement("sb.append(\"[]\")")
+                    .nextControlFlow("else")
+                    .addStatement("sb.append(\"[\")")
+                    .beginControlFlow("for(int $LIndex = 0; $LIndex < $L.length; $LIndex++)", member.name, member.name, member.name, member.name)
+                    .beginControlFlow("if($LIndex > 0)", member.name)
+                    .addStatement("sb.append(\", \")")
+                    .endControlFlow()
+                    .addStatement("sb.append($L[$LIndex])", member.name, member.name)
+                    .endControlFlow()
+                    .addStatement("sb.append(\"]\")")
+                    .endControlFlow();
+            break;
         default:
-            if(isInstanceOf(member, JsonWriter.class)) {
+            if(isInstanceOf(member, List.class)) {
+                method.addStatement("// hit");
+                method.beginControlFlow("if($L == null)", member.name)
+                        .addStatement("sb.append(\"null\")")
+                        .nextControlFlow("if($L.isEmpty())", member.name)
+                        .addStatement("sb.append(\"[]\")")
+                        .nextControlFlow("else")
+                        .addStatement("sb.append(\"[\")")
+                        .beginControlFlow("for(int $LIndex = 0; $LIndex < $L.size(); $LIndex++)", member.name, member.name, member.name, member.name)
+                        .beginControlFlow("if($LIndex > 0)", member.name)
+                        .addStatement("sb.append(\", \")")
+                        .endControlFlow()
+                        .addStatement("sb.append($L.get($LIndex))", member.name, member.name)
+                        .endControlFlow()
+                        .addStatement("sb.append(\"]\")")
+                        .endControlFlow();
+                // TODO this here has to be a recursive call however no idea how.
+            } else if(isInstanceOf(member, JsonWriter.class)) {
                 method.addStatement("sb.append($L.toJson())", member.name);
+            } else if(isInstanceOf(member, Number.class) || isInstanceOf(member, Boolean.class)) {
+                if(format == null) {
+                    method.addStatement("sb.append($L)", member.name);
+                } else {
+                    TypeName stringType = ClassName.get(String.class);
+                    method.addStatement("sb.append($T.format($L$T$L, $S, $L))", stringType, locale.prefix, locale.type, locale.suffix, format, member.name);
+                }
             } else if(format != null && isInstanceOf(member, Date.class)) {
-                addFormatDateCode(method, member, format);
+                TypeName type = ClassName.get(SimpleDateFormat.class);
+                method.addStatement("$T $LFormatter = new $T($S, $L$T$L)", type, member.name, type, format, locale.prefix, locale.type, locale.suffix);
+                method.addStatement("sb.append($LFormatter.format($L))", member.name, member.name);
             } else if(format != null && isInstanceOf(member, Number.class)) {
-                addFormatNumberCode(method, member, format);
+                TypeName stringType = ClassName.get(String.class);
+                method.addStatement("sb.append($T.format($L$T$L, $S, $L))", stringType, locale.prefix, locale.type, locale.suffix, format, member.name);
             } else if(String.class.getName().equals(member.typeName)) {
                 // TODO mask the string (\ -> \\, " -> \")
                 method.addStatement("sb.append($L)", member.name);
@@ -107,22 +156,9 @@ public class JsonPacker extends Extension {
                 method.addStatement("sb.append('\"').append($L.toString()).append('\"')", member.name);
             }
         }
-        if(!member.type.getKind().isPrimitive()) {
+        if(needsNullCheck) {
             method.endControlFlow();
         }
-    }
-
-    private void addFormatDateCode(MethodSpec.Builder method, AnnotatedClass.Member member, String format) {
-        LocaleHelper locale = LocaleHelper.from(member);
-        TypeName type = ClassName.get(SimpleDateFormat.class);
-        method.addStatement("$T $LFormatter = new $T($S, $L$T$L)", type, member.name, type, format, locale.prefix, locale.type, locale.suffix);
-        method.addStatement("sb.append($LFormatter.format($L))", member.name, member.name);
-    }
-
-    private void addFormatNumberCode(MethodSpec.Builder method, AnnotatedClass.Member member, String format) {
-        LocaleHelper locale = LocaleHelper.from(member);
-        TypeName stringType = ClassName.get(String.class);
-        method.addStatement("sb.append($T.format($L$T$L, $S, $L))", stringType, locale.prefix, locale.type, locale.suffix, format, member.name);
     }
 
     @NonNull
