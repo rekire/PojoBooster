@@ -99,6 +99,8 @@ class PojoboosterPlugin implements Plugin<Project> {
             javaCompile.options.compilerArgs.addAll '-processorpath',
                     project.configurations.pojobooster.asPath, '-s', variantAptOutputDir.path
 
+            println "HINT compiler args: " + javaCompile.options.compilerArgs
+
             javaCompile.source = javaCompile.source.filter {
                 !variant.variantData.extraGeneratedSourceFolders.each { folder ->
                     folder.path.startsWith(aptOutputDir.path)

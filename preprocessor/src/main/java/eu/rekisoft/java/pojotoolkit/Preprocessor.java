@@ -15,6 +15,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -36,9 +37,12 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.ExecutableType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import javax.lang.model.type.TypeVariable;
 import javax.tools.Diagnostic;
+import javax.tools.DiagnosticCollector;
+import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
+import javax.tools.StandardJavaFileManager;
+import javax.tools.ToolProvider;
 
 import eu.rekisoft.java.pojobooster.Enhance;
 import eu.rekisoft.java.pojobooster.FactoryOf;
@@ -52,10 +56,12 @@ import eu.rekisoft.java.pojobooster.JsonDecorator;
 @TargetApi(24) // STFU
 public class Preprocessor extends AbstractProcessor {
 
+    private final JavaCompiler compiler;
     private String sourcePath = null;
 
     public Preprocessor() {
         super();
+        compiler = ToolProvider.getSystemJavaCompiler();
     }
 
     @Override
@@ -211,6 +217,7 @@ public class Preprocessor extends AbstractProcessor {
                 module = sourcePath.substring(0, sourcePath.indexOf("/build/classes/"));
                 dir = module + "/src/generated/" + annotatedClass.targetType.packageName().replace(".", "/");
             } else {
+                // TODO the debug string should not been hardcoded
                 module = sourcePath.substring(0, sourcePath.indexOf("/build/"));
                 dir = module + "/build/generated/source/pojo/debug/" + annotatedClass.targetType.packageName().replace(".", "/");
             }
@@ -225,10 +232,52 @@ public class Preprocessor extends AbstractProcessor {
             bw.append(javaFile.toString().trim());
             bw.flush();
             bw.close();
+
+            compile(targetFile);
         } catch(IOException e) {
             e.printStackTrace();
         } catch(StringIndexOutOfBoundsException e) {
             throw new RuntimeException("Huston we have a problem at " + sourcePath, e);
+        }
+    }
+
+    private void compile(String targetFile) {
+        // https://www.javacodegeeks.com/2015/09/java-compiler-api.html
+        final DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
+        final StandardJavaFileManager manager = compiler.getStandardFileManager(
+                diagnostics, null, null);
+
+        final Iterable<? extends JavaFileObject> sources =
+                manager.getJavaFileObjectsFromFiles(Arrays.asList(new File(targetFile)));
+
+        File target = new File("D:\\Programmierung\\PojoBooster\\examplelibrary\\build\\intermediates\\classes\\debug");
+        if(!target.exists()) {
+            target.mkdirs();
+        }
+
+        // gradlew cle publishToMavenLocal
+        // gradlew :ex:aDeb --stacktrace
+
+        // set compiler's classpath to be same as the runtime's
+        List<String> optionList = Arrays.asList("-classpath", "C:\\Users\\rekir_000\\.m2\\repository\\eu\\rekisoft\\pojobooster\\Annotations\\0.0.0\\Annotations-0.0.0.jar;" +
+                "C:\\Users\\rekir_000\\.m2\\repository\\eu\\rekisoft\\pojobooster\\Preprocessor\\0.0.0\\Preprocessor-0.0.0.jar;" +
+                "C:\\Users\\rekir_000\\.gradle\\caches\\modules-2\\files-2.1\\com.squareup\\javapoet\\1.7.0\\4fdcf1fc27c1a8f55d1109df986c923152f07759\\javapoet-1.7.0.jar;" +
+                "G:\\sdk\\extras\\android\\m2repository\\com\\android\\support\\support-annotations\\24.1.0\\support-annotations-24.1.0.jar;" +
+                "C:\\Users\\rekir_000\\.gradle\\caches\\modules-2\\files-2.1\\org.robolectric\\android-all\\6.0.0_r1-robolectric-0\\ae05eb8f25e9ec919c029f04164994f3c53e255d\\android-all-6.0.0_r1-robolectric-0.jar;" +
+                "D:\\Programmierung\\PojoBooster\\examplelibrary\\src\\main\\java;D:\\Programmierung\\PojoBooster\\examplelibrary\\build\\intermediates\\classes\\debug",
+                "-d", "D:\\Programmierung\\PojoBooster\\examplelibrary\\build\\intermediates\\classes\\debug");
+
+        final JavaCompiler.CompilationTask task = compiler.getTask(null, manager, diagnostics,
+                optionList, null, sources);
+        task.call();
+
+        for(final Diagnostic<? extends JavaFileObject> diagnostic :
+                diagnostics.getDiagnostics()) {
+
+            System.out.format("SELF-COMPILE: %s, line %d in %s\n",
+                    diagnostic.getMessage(null),
+                    diagnostic.getLineNumber(),
+                    diagnostic.getSource().getName());
         }
     }
 
