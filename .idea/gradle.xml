@@ -5,12 +5,14 @@
       <GradleProjectSettings>
         <option name="distributionType" value="LOCAL" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
-        <option name="gradleHome" value="G:\android-studio\gradle\gradle-2.14.1" />
+        <option name="gradleHome" value="G:/android-studio/gradle/gradle-2.14.1" />
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/annotations" />
             <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/examplelibrary" />
+            <option value="$PROJECT_DIR$/plugin" />
             <option value="$PROJECT_DIR$/preprocessor" />
             <option value="$PROJECT_DIR$/test" />
           </set>

@@ -206,9 +206,14 @@ public class Preprocessor extends AbstractProcessor {
         JavaFile javaFile = JavaFile.builder(annotatedClass.targetType.packageName(), generated.build()).indent("    ").build();
 
         try {
-            String module = sourcePath.substring(0, sourcePath.indexOf("/build/classes/"));
-            // should be written to build/generated/source/pojo
-            String dir = module + "/src/generated/" + annotatedClass.targetType.packageName().replace(".", "/");
+            String module, dir;
+            if(sourcePath.indexOf("/build/classes/") > 0) {
+                module = sourcePath.substring(0, sourcePath.indexOf("/build/classes/"));
+                dir = module + "/src/generated/" + annotatedClass.targetType.packageName().replace(".", "/");
+            } else {
+                module = sourcePath.substring(0, sourcePath.indexOf("/build/"));
+                dir = module + "/build/generated/source/pojo/debug/" + annotatedClass.targetType.packageName().replace(".", "/");
+            }
             File directory = new File(dir);
             directory.mkdirs();
             String targetFile = dir + "/" + annotatedClass.targetType.simpleName() + ".java";
@@ -222,6 +227,8 @@ public class Preprocessor extends AbstractProcessor {
             bw.close();
         } catch(IOException e) {
             e.printStackTrace();
+        } catch(StringIndexOutOfBoundsException e) {
+            throw new RuntimeException("Huston we have a problem at " + sourcePath, e);
         }
     }
 

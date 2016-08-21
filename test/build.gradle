@@ -65,3 +65,20 @@ task deleteGeneratedCode(type: Delete) {
 if (project.tasks.findByName('clean')) {
     project.tasks.getByName('clean').dependsOn project.deleteGeneratedCode
 }
+
+boolean firstTry = true
+task bb() {
+    doLast {
+        println "Is first try: " + firstTry
+        if (firstTry) {
+            firstTry = false
+            //throw new IllegalStateException("Boom!")
+        }
+    }
+}
+task aa(/*dependsOn:bb*/) << {
+    println "Hallo!"
+    tasks.bb.execute()
+    tasks.bb.execute()
+    //tasks.bb.execute()
+}
