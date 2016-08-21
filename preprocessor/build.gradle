@@ -1,6 +1,28 @@
 apply plugin:'java'
+apply plugin: 'maven-publish'
 
 dependencies {
-    compile project(':annotations')
+    //compile project(':annotations')
+    compile "eu.rekisoft.pojobooster:Annotations:$project.libVersion" //project(':annotations')
     compile 'com.squareup:javapoet:1.7.0'
+}
+
+task sourceJar(type: Jar) {
+    from sourceSets.main.allSource
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId 'eu.rekisoft.pojobooster'
+            artifactId 'Preprocessor'
+            version project.libVersion
+
+            from components.java
+
+            artifact sourceJar {
+                classifier "sources"
+            }
+        }
+    }
 }

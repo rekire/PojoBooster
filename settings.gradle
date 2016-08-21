@@ -1,1 +1,1 @@
-include ':app', ':preprocessor', ':test', ':annotations', ':examplelibrary', ':plugin'
+include ':annotations', ':preprocessor', ':plugin', ':test', ':app', ':examplelibrary'

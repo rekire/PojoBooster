@@ -1,4 +1,7 @@
 apply plugin: 'groovy'
+apply plugin: 'maven-publish'
+
+// build the project with gradlew cle :pre:jar :pl:publishToMavenLocal
 
 dependencies {
     compile gradleApi()
@@ -6,6 +9,26 @@ dependencies {
     //compile "org.codehaus.groovy:groovy-all:1.8.6"
 
     //testCompile "org.spockframework:spock-core:0.6-groovy-1.8"
+}
+
+task sourceJar(type: Jar) {
+    from sourceSets.main.allSource
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId 'eu.rekisoft'
+            artifactId 'Pojobooster'
+            version project.libVersion
+
+            from components.java
+
+            artifact sourceJar {
+                classifier "sources"
+            }
+        }
+    }
 }
 
 sourceCompatibility = "1.7"

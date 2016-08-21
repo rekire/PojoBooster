@@ -1,4 +1,5 @@
 apply plugin: 'java'
+apply plugin: 'maven-publish'
 
 configurations {
     provided
@@ -11,4 +12,24 @@ dependencies {
     provided 'org.robolectric:android-all:6.0.0_r1-robolectric-0'
     provided 'com.android.support:support-annotations:24.1.0'
     provided 'com.squareup:javapoet:1.7.0'
+}
+
+task sourceJar(type: Jar) {
+    from sourceSets.main.allSource
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId 'eu.rekisoft.pojobooster'
+            artifactId 'Annotations'
+            version project.libVersion
+
+            from components.java
+
+            artifact sourceJar {
+                classifier "sources"
+            }
+        }
+    }
 }
