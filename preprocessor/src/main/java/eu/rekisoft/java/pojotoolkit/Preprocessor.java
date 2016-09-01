@@ -79,6 +79,9 @@ public class Preprocessor extends AbstractProcessor {
             }
         }
 
+        System.out.println("Env: " + System.getenv());
+        System.out.println("Properties: " + System.getProperties());
+
         Set<? extends Element> instances = roundEnv.getElementsAnnotatedWith(Enhance.class);
         for(Element elem : instances) {
             if(elem.getKind() != ElementKind.CLASS) {

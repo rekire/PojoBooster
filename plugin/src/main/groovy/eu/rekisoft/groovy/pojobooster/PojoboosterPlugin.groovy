@@ -88,10 +88,40 @@ class PojoboosterPlugin implements Plugin<Project> {
         //androidExtension.sourceSets.main.java.srcDirs += "build/generated/source/pojo/debug"
 
         variants.all { variant ->
+            String path = project.configurations.pojobooster.asPath
+            def stubTaskName = "generate${variant.name.capitalize()}PojoBoosterStubs"
+            def classTaskName = "generate${variant.name.capitalize()}PojoBoosterClasses"
+            project.task(stubTaskName) {
+                group = "Code generation"
+                description = "Generated stubs for the ${variant.name} variant which will been replaced by $classTaskName."
+                // TODO enable when stable
+                //inputs.file androidExtension.sourceSets.main.java.srcDirs
+                //outputs.dir 'build/generated/source/pojo-stubs/' + variant.name
+                doLast {
+                    println "Hallo " + variant.name.capitalize() + "!"
+                    println "Path is " + path.length() + " long"
+                }
+            }
+            project.task(classTaskName) {
+                group = "Code generation"
+                description = "Generated classes for the ${variant.name} variant."
+                // TODO enable when stable
+                //inputs.file 'build/generated/source/pojo-stubs/' + variant.name
+                //outputs.dir 'build/generated/source/pojo/' + variant.name
+                doLast {
+                    println "Hallo again " + variant.name.capitalize() + "!"
+                }
+            }
+            project.tasks[classTaskName].dependsOn stubTaskName
+            project.tasks.preBuild.dependsOn classTaskName
+            //project.tasks["generate${variant.name.capitalize()}Souces"].dependsOn classTaskName
+        }
+
+        variants.all { variant ->
             File aptOutputDir = getOutputDir(project)
             File variantAptOutputDir = project.file("${aptOutputDir}/${dirName}")
 
-            println sourceSetName(variant) + " -- " + androidExtension.sourceSets[sourceSetName(variant)].java.srcDirs
+            println sourceSetName(variant).capitalize() + " -- " + androidExtension.sourceSets[sourceSetName(variant)].java.srcDirs
 
             androidExtension.sourceSets.main.java.srcDirs += "build/generated/source/pojo/" + sourceSetName(variant)
             androidExtension.sourceSets[sourceSetName(variant)].java.srcDirs.addAll variantAptOutputDir.path
@@ -99,7 +129,7 @@ class PojoboosterPlugin implements Plugin<Project> {
             javaCompile.options.compilerArgs.addAll '-processorpath',
                     project.configurations.pojobooster.asPath, '-s', variantAptOutputDir.path
 
-            println "HINT compiler args: " + javaCompile.options.compilerArgs
+            //println "HINT compiler args: " + javaCompile.options.compilerArgs
 
             javaCompile.source = javaCompile.source.filter {
                 !variant.variantData.extraGeneratedSourceFolders.each { folder ->
