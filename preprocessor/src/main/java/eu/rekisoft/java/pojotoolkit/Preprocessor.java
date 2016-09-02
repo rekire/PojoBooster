@@ -236,7 +236,7 @@ public class Preprocessor extends AbstractProcessor {
             bw.flush();
             bw.close();
 
-            compile(targetFile);
+            //compile(targetFile);
         } catch(IOException e) {
             e.printStackTrace();
         } catch(StringIndexOutOfBoundsException e) {

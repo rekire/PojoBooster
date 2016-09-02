@@ -98,8 +98,8 @@ class PojoboosterPlugin implements Plugin<Project> {
                 //inputs.file androidExtension.sourceSets.main.java.srcDirs
                 //outputs.dir 'build/generated/source/pojo-stubs/' + variant.name
                 doLast {
-                    println "Hallo " + variant.name.capitalize() + "!"
-                    println "Path is " + path.length() + " long"
+                    //println "sourceSets: " + androidExtension.sourceSets.getClass()
+                    runPreprocessor(true, path, logger, variant.name, androidExtension.sourceSets)
                 }
             }
             project.task(classTaskName) {
@@ -109,7 +109,7 @@ class PojoboosterPlugin implements Plugin<Project> {
                 //inputs.file 'build/generated/source/pojo-stubs/' + variant.name
                 //outputs.dir 'build/generated/source/pojo/' + variant.name
                 doLast {
-                    println "Hallo again " + variant.name.capitalize() + "!"
+                    runPreprocessor(false, path, logger, variant.name, androidExtension.sourceSets)
                 }
             }
             project.tasks[classTaskName].dependsOn stubTaskName
@@ -121,10 +121,10 @@ class PojoboosterPlugin implements Plugin<Project> {
             File aptOutputDir = getOutputDir(project)
             File variantAptOutputDir = project.file("${aptOutputDir}/${dirName}")
 
-            println sourceSetName(variant).capitalize() + " -- " + androidExtension.sourceSets[sourceSetName(variant)].java.srcDirs
+            //println sourceSetName(variant).capitalize() + " -- " + androidExtension.sourceSets[sourceSetName(variant)].java.srcDirs
 
-            androidExtension.sourceSets.main.java.srcDirs += "build/generated/source/pojo/" + sourceSetName(variant)
-            androidExtension.sourceSets[sourceSetName(variant)].java.srcDirs.addAll variantAptOutputDir.path
+            //androidExtension.sourceSets.main.java.srcDirs += "build/generated/source/pojo/" + sourceSetName(variant)
+            //androidExtension.sourceSets[sourceSetName(variant)].java.srcDirs.addAll variantAptOutputDir.path
 
             javaCompile.options.compilerArgs.addAll '-processorpath',
                     project.configurations.pojobooster.asPath, '-s', variantAptOutputDir.path
@@ -158,4 +158,71 @@ class PojoboosterPlugin implements Plugin<Project> {
         }
         project.file outputDirName
     }
+
+    private
+    static void runPreprocessor(boolean justStubs, String classPath, org.gradle.internal.logging.slf4j.OutputEventListenerBackedLogger logger, String variantName, org.gradle.api.NamedDomainObjectCollection sourceSets) {
+        logger.warn "Building $variantName with stubs = $justStubs"
+
+        println "sources: " + sourceSets['main'].getJava()
+        println "process: " + finder(sourceSets['main'].getJava().getSrcDirs())
+        //println "test: " + (sourceSets['main'].getJava().getSrcDirs() instanceof Iterable<File>)
+        //println "variant: " + sourceSets[variantName].asPath
+
+        /*
+
+        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+
+        final DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
+        final StandardJavaFileManager manager = compiler.getStandardFileManager(
+                diagnostics, null, null);
+
+        final Iterable<? extends JavaFileObject> sources =
+                manager.getJavaFileObjectsFromFiles(Arrays.asList(finder("src/main")));
+
+        File target = new File("build/intermediates/classes/debug");
+        if (!target.exists()) {
+            target.mkdirs();
+        }
+
+        // gradlew cle publishToMavenLocal
+        // gradlew :ex:aDeb --stacktrace
+
+        // set compiler's classpath to be same as the runtime's
+        List<String> optionList = Arrays.asList("-classpath", classPath,
+                "-d", "build/intermediates/classes/debug", "-Dtest=blah");
+
+        final JavaCompiler.CompilationTask task = compiler.getTask(null, manager, diagnostics,
+                optionList, null, sources);
+        task.call();
+
+        for (final Diagnostic<? extends JavaFileObject> diagnostic :
+                diagnostics.getDiagnostics()) {
+
+            System.out.format("SELF-COMPILE: %s, line %d in %s\n",
+                    diagnostic.getMessage(null),
+                    diagnostic.getLineNumber(),
+                    diagnostic.getSource().getName());
+        }
+        //*/
+    }
+//*
+    public static File[] finder(Set<File> dirs) {
+        List<File> files = new ArrayList<>();
+        for(File dir : dirs) {
+            scanDir(dir, files)
+        }
+        return files;
+    }
+    private static void scanDir(File dir, List<File> files) {
+        files.addAll(dir.listFiles(new FilenameFilter() {
+            public boolean accept(File file, String filename) {
+                File full = new File(file, filename)
+                if(full.isDirectory()) {
+                    scanDir(full, files)
+                }
+                return filename.endsWith(".java");
+            }
+        }));
+    }
+    //*/
 }
