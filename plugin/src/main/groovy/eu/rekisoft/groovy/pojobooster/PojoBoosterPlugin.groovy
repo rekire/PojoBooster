@@ -3,6 +3,7 @@ package eu.rekisoft.groovy.pojobooster
 import org.gradle.api.NamedDomainObjectCollection
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.logging.LogLevel
 import org.gradle.api.logging.Logger
 import org.gradle.tooling.BuildException
 
@@ -100,6 +101,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
             String path = project.configurations.pojobooster.asPath
             def stubTaskName = "generate${variant.name.capitalize()}PojoBoosterStubs"
             def classTaskName = "generate${variant.name.capitalize()}PojoBoosterClasses"
+            //androidExtension.sourceSets.main.java.srcDirs += getOutputDir(project)
             project.task(stubTaskName) {
                 group = "Code generation"
                 description = "Generated stubs for the ${variant.name} variant which will been replaced by $classTaskName."
@@ -177,36 +179,35 @@ class PojoBoosterPlugin implements Plugin<Project> {
     }
 
     private static void runPreprocessor(boolean justStubs, String classPath, Logger logger, String variantName, NamedDomainObjectCollection sourceSets, Project project) {
-        logger.warn "Building $variantName with stubs = $justStubs"
+        logger.debug "Generating code for $variantName with stubs = $justStubs"
 
-        println "sources: " + sourceSets['main'].getJava()
+        //println "sources: " + sourceSets['main'].getJava()
         List<String> sourceFiles = finder(sourceSets['main'].getJava().getSrcDirs())
-        println "process: " + sourceFiles
-        //classPath += sourceSets['main'].getJava().join(File.pathSeparator)
-        //println "test: " + (sourceSets['main'].getJava().getSrcDirs() instanceof Iterable<File>)
-        //println "variant: " + sourceSets[variantName].asPath
-
-        //*
-
-        String step = justStubs ? "stub" : "generation"
+        //println "process: " + sourceFiles
 
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler()
+
+        String step = justStubs ? "stub" : "generation"
+        LogLevel compileLogLevel = justStubs ? LogLevel.DEBUG : LogLevel.WARN
+        File outDir = justStubs ? getStubDir(project) : getOutputDir(project)
+        if(!justStubs) {
+            classPath += File.pathSeparator + getStubDir(project) + File.separator + variantName
+        }
 
         final DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>()
         final StandardJavaFileManager manager = compiler.getStandardFileManager(diagnostics, null, null)
 
         final Iterable<? extends JavaFileObject> sources = manager.getJavaFileObjectsFromFiles(sourceFiles)
 
-        File outDir = justStubs ? getStubDir(project) : getOutputDir(project)
-
         File target = project.file(outDir.toString() + File.separator + variantName)
-        //File target = new File("build/generated/source/pojo-stubs/" + variantName);
         if (!target.exists()) {
             target.mkdirs();
         }
 
         // gradlew cle publishToMavenLocal
         // gradlew :ex:aDeb --stacktrace
+
+        logger.warn "using cp $classPath"
 
         // set compiler's classpath to be same as the runtime's
         List<String> optionList = Arrays.asList("-classpath", classPath, "-Astep=" + step,
@@ -215,23 +216,16 @@ class PojoBoosterPlugin implements Plugin<Project> {
 
         final JavaCompiler.CompilationTask task = compiler.getTask(null, manager, diagnostics,
                 optionList, null, sources);
-        try {
-            task.call();
-        } catch (Exception e) {
-            e.printStackTrace()
-        }
+        task.call();
 
         for (final Diagnostic<? extends JavaFileObject> diagnostic :
                 diagnostics.getDiagnostics()) {
-
-            System.out.format("SELF-COMPILE: %s, line %d in %s\n",
+            logger.log(compileLogLevel, String.format("COMPILE-Error: %s, line %d in %s",
                     diagnostic.getMessage(null),
                     diagnostic.getLineNumber(),
-                    diagnostic.getSource() != null ? diagnostic.getSource().getName() : "null");
+                    diagnostic.getSource() != null ? diagnostic.getSource().getName() : "null"));
         }
-        //*/
     }
-//*
     public static File[] finder(Set<File> dirs) {
         List<File> files = new ArrayList<>();
         for(File dir : dirs) {
@@ -250,5 +244,4 @@ class PojoBoosterPlugin implements Plugin<Project> {
             }
         }));
     }
-    //*/
 }
