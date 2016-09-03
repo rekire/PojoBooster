@@ -1,15 +1,24 @@
 package eu.rekisoft.groovy.pojobooster
 
+import org.gradle.api.NamedDomainObjectCollection
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.internal.logging.slf4j.OutputEventListenerBackedLogger
 import org.gradle.tooling.BuildException
 
-class PojoboosterPlugin implements Plugin<Project> {
+import javax.tools.Diagnostic
+import javax.tools.DiagnosticCollector
+import javax.tools.JavaCompiler
+import javax.tools.JavaFileObject
+import javax.tools.StandardJavaFileManager
+import javax.tools.ToolProvider
+
+class PojoBoosterPlugin implements Plugin<Project> {
 
     @Override
     void apply(Project project) {
         project.configurations.create 'pojobooster'
-        project.extensions.create 'pojobooster', PojoboosterPluginExtension
+        project.extensions.create 'pojobooster', PojoBoosterPluginExtension
 
         // TODO this should simplify it and not more complex
 
@@ -73,6 +82,8 @@ class PojoboosterPlugin implements Plugin<Project> {
         def androidExtension
         def variants
 
+        println "proj: " + project.getClass()
+
         if (project.plugins.hasPlugin('com.android.application')) {
             println "detected app"
             androidExtension = project.plugins.getPlugin('com.android.application').extension
@@ -99,7 +110,7 @@ class PojoboosterPlugin implements Plugin<Project> {
                 //outputs.dir 'build/generated/source/pojo-stubs/' + variant.name
                 doLast {
                     //println "sourceSets: " + androidExtension.sourceSets.getClass()
-                    runPreprocessor(true, path, logger, variant.name, androidExtension.sourceSets)
+                    runPreprocessor(true, path, logger, variant.name, androidExtension.sourceSets, project)
                 }
             }
             project.task(classTaskName) {
@@ -109,7 +120,7 @@ class PojoboosterPlugin implements Plugin<Project> {
                 //inputs.file 'build/generated/source/pojo-stubs/' + variant.name
                 //outputs.dir 'build/generated/source/pojo/' + variant.name
                 doLast {
-                    runPreprocessor(false, path, logger, variant.name, androidExtension.sourceSets)
+                    runPreprocessor(false, path, logger, variant.name, androidExtension.sourceSets, project)
                 }
             }
             project.tasks[classTaskName].dependsOn stubTaskName
@@ -159,27 +170,39 @@ class PojoboosterPlugin implements Plugin<Project> {
         project.file outputDirName
     }
 
-    private
-    static void runPreprocessor(boolean justStubs, String classPath, org.gradle.internal.logging.slf4j.OutputEventListenerBackedLogger logger, String variantName, org.gradle.api.NamedDomainObjectCollection sourceSets) {
+    def static getStubDir(project) {
+        def outputDirName = project.pojobooster.stubDirName
+        if (!outputDirName) {
+            outputDirName = 'build/source/pojo-stub'
+        }
+        project.file outputDirName
+    }
+
+    private static void runPreprocessor(boolean justStubs, String classPath, OutputEventListenerBackedLogger logger, String variantName, NamedDomainObjectCollection sourceSets, Project project) {
         logger.warn "Building $variantName with stubs = $justStubs"
 
         println "sources: " + sourceSets['main'].getJava()
-        println "process: " + finder(sourceSets['main'].getJava().getSrcDirs())
+        List<String> sourceFiles = finder(sourceSets['main'].getJava().getSrcDirs())
+        println "process: " + sourceFiles
+        //classPath += sourceSets['main'].getJava().join(File.pathSeparator)
         //println "test: " + (sourceSets['main'].getJava().getSrcDirs() instanceof Iterable<File>)
         //println "variant: " + sourceSets[variantName].asPath
 
-        /*
+        //*
 
-        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+        String step = justStubs ? "stub" : "generation"
 
-        final DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
-        final StandardJavaFileManager manager = compiler.getStandardFileManager(
-                diagnostics, null, null);
+        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler()
 
-        final Iterable<? extends JavaFileObject> sources =
-                manager.getJavaFileObjectsFromFiles(Arrays.asList(finder("src/main")));
+        final DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>()
+        final StandardJavaFileManager manager = compiler.getStandardFileManager(diagnostics, null, null)
 
-        File target = new File("build/intermediates/classes/debug");
+        final Iterable<? extends JavaFileObject> sources = manager.getJavaFileObjectsFromFiles(sourceFiles)
+
+        File outDir = justStubs ? getStubDir(project) : getOutputDir(project)
+
+        File target = project.file(outDir.toString() + File.pathSeparator + variantName)
+        //File target = new File("build/generated/source/pojo-stubs/" + variantName);
         if (!target.exists()) {
             target.mkdirs();
         }
@@ -188,12 +211,16 @@ class PojoboosterPlugin implements Plugin<Project> {
         // gradlew :ex:aDeb --stacktrace
 
         // set compiler's classpath to be same as the runtime's
-        List<String> optionList = Arrays.asList("-classpath", classPath,
-                "-d", "build/intermediates/classes/debug", "-Dtest=blah");
+        List<String> optionList = Arrays.asList("-classpath", classPath, "-Astep=" + step,
+                "-d", target.toString());
 
         final JavaCompiler.CompilationTask task = compiler.getTask(null, manager, diagnostics,
                 optionList, null, sources);
-        task.call();
+        try {
+            task.call();
+        } catch (Exception e) {
+            e.printStackTrace()
+        }
 
         for (final Diagnostic<? extends JavaFileObject> diagnostic :
                 diagnostics.getDiagnostics()) {
@@ -201,7 +228,7 @@ class PojoboosterPlugin implements Plugin<Project> {
             System.out.format("SELF-COMPILE: %s, line %d in %s\n",
                     diagnostic.getMessage(null),
                     diagnostic.getLineNumber(),
-                    diagnostic.getSource().getName());
+                    diagnostic.getSource() != null ? diagnostic.getSource().getName() : "null");
         }
         //*/
     }

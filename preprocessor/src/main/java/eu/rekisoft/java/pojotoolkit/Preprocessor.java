@@ -24,6 +24,7 @@ import java.util.Set;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
+import javax.annotation.processing.SupportedOptions;
 import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.AnnotationMirror;
@@ -54,6 +55,7 @@ import eu.rekisoft.java.pojobooster.JsonDecorator;
         "eu.rekisoft.java.pojobooster.FactoryOf"})
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 @TargetApi(24) // STFU
+@SupportedOptions({"step", "target"})
 public class Preprocessor extends AbstractProcessor {
 
     private final JavaCompiler compiler;
@@ -66,6 +68,8 @@ public class Preprocessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+        //System.out.println("DEBUG: " + processingEnv.getOptions());
+        System.out.println("Step: " + processingEnv.getOptions().get("step"));
         if(sourcePath == null) {
             try {
                 JavaFileObject generationForPath = processingEnv.getFiler().createSourceFile("Killme" + System.currentTimeMillis());
@@ -79,8 +83,8 @@ public class Preprocessor extends AbstractProcessor {
             }
         }
 
-        System.out.println("Env: " + System.getenv());
-        System.out.println("Properties: " + System.getProperties());
+        //System.out.println("Env: " + System.getenv());
+        //System.out.println("Properties: " + System.getProperties());
 
         Set<? extends Element> instances = roundEnv.getElementsAnnotatedWith(Enhance.class);
         for(Element elem : instances) {

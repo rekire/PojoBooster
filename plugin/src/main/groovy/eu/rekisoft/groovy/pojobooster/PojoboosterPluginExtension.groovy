@@ -1,5 +1,6 @@
 package eu.rekisoft.groovy.pojobooster
 
-class PojoboosterPluginExtension {
+class PojoBoosterPluginExtension {
   String outputDirName
+  String stubDirName
 }
