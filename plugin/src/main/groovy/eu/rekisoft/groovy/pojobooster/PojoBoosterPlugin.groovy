@@ -26,13 +26,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
         project.dependencies.
                 add("compile", project.getDependencies().create("eu.rekisoft.pojobooster:Annotations:$project.libVersion"))
         project.dependencies.
-                add("compile", project.getDependencies().create("eu.rekisoft.pojobooster:Preprocessor:$project.libVersion"))
-        project.dependencies.
-                add("compile", project.getDependencies().create("com.squareup:javapoet:1.7.0"))
-        project.dependencies.
                 add("compile", project.getDependencies().create("com.android.support:support-annotations:24.1.0"))
-        project.dependencies.
-                add("compile", project.getDependencies().create("org.robolectric:android-all:6.0.0_r1-robolectric-0"))
         project.dependencies.
                 add("pojobooster", project.getDependencies().create("eu.rekisoft.pojobooster:Annotations:$project.libVersion"))
         project.dependencies.
@@ -96,12 +90,13 @@ class PojoBoosterPlugin implements Plugin<Project> {
         }
 
         //androidExtension.sourceSets.main.java.srcDirs += "build/generated/source/pojo/debug"
-
+        println "BEFORE: " + androidExtension.sourceSets.main.java.srcDirs
         variants.all { variant ->
+            androidExtension.sourceSets.main.java.srcDirs += new File(getOutputDir(project), variant.name)
+
             String path = project.configurations.pojobooster.asPath
             def stubTaskName = "generate${variant.name.capitalize()}PojoBoosterStubs"
             def classTaskName = "generate${variant.name.capitalize()}PojoBoosterClasses"
-            //androidExtension.sourceSets.main.java.srcDirs += getOutputDir(project)
             project.task(stubTaskName) {
                 group = "Code generation"
                 description = "Generated stubs for the ${variant.name} variant which will been replaced by $classTaskName."
@@ -109,7 +104,6 @@ class PojoBoosterPlugin implements Plugin<Project> {
                 //inputs.file androidExtension.sourceSets.main.java.srcDirs
                 //outputs.dir 'build/generated/source/pojo-stubs/' + variant.name
                 doLast {
-                    //println "sourceSets: " + androidExtension.sourceSets.getClass()
                     runPreprocessor(true, path, logger, variant.name, androidExtension.sourceSets, project)
                 }
             }
@@ -125,9 +119,11 @@ class PojoBoosterPlugin implements Plugin<Project> {
             }
             project.tasks[classTaskName].dependsOn stubTaskName
             project.tasks.preBuild.dependsOn classTaskName
-            //project.tasks["generate${variant.name.capitalize()}Souces"].dependsOn classTaskName
         }
 
+        println "AFTER: " + androidExtension.sourceSets.main.java.srcDirs
+
+        /*
         variants.all { variant ->
             File aptOutputDir = getOutputDir(project)
             File variantAptOutputDir = project.file("${aptOutputDir}/${dirName}")
@@ -156,6 +152,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
                 variantAptOutputDir.mkdirs()
             }
         }
+        //*/
     }
 
     def static sourceSetName(variant) {
@@ -165,7 +162,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
     def static getOutputDir(project) {
         def outputDirName = project.pojobooster.outputDirName
         if (!outputDirName) {
-            outputDirName = 'build/source/pojo'
+            outputDirName = 'build/generated/source/pojo'
         }
         project.file outputDirName
     }
@@ -173,7 +170,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
     def static getStubDir(project) {
         def outputDirName = project.pojobooster.stubDirName
         if (!outputDirName) {
-            outputDirName = 'build/source/pojo-stub'
+            outputDirName = 'build/generated/source/pojo-stub'
         }
         project.file outputDirName
     }
@@ -209,10 +206,15 @@ class PojoBoosterPlugin implements Plugin<Project> {
 
         logger.warn "using cp $classPath"
 
+        File output = project.file(justStubs ? "build/tmp/pojo-stub" : "build/intermediates/classes/" + variantName);
+        if(!output.exists()) {
+            output.mkdirs()
+        }
+
         // set compiler's classpath to be same as the runtime's
         List<String> optionList = Arrays.asList("-classpath", classPath, "-Astep=" + step,
                 "-Atarget=" + target.toString(), // TODO forward the current log level
-                "-d", target.toString());
+                "-d", output.toString());
 
         final JavaCompiler.CompilationTask task = compiler.getTask(null, manager, diagnostics,
                 optionList, null, sources);
@@ -234,14 +236,16 @@ class PojoBoosterPlugin implements Plugin<Project> {
         return files;
     }
     private static void scanDir(File dir, List<File> files) {
-        files.addAll(dir.listFiles(new FilenameFilter() {
-            public boolean accept(File file, String filename) {
-                File full = new File(file, filename)
-                if(full.isDirectory()) {
-                    scanDir(full, files)
+        if(dir.exists()) {
+            files.addAll(dir.listFiles(new FilenameFilter() {
+                public boolean accept(File file, String filename) {
+                    File full = new File(file, filename)
+                    if (full.isDirectory()) {
+                        scanDir(full, files)
+                    }
+                    return filename.endsWith(".java");
                 }
-                return filename.endsWith(".java");
-            }
-        }));
+            }));
+        }
     }
 }
