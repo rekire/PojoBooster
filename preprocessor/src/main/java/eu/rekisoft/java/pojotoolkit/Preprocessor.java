@@ -3,6 +3,7 @@ package eu.rekisoft.java.pojotoolkit;
 import android.annotation.TargetApi;
 
 import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
@@ -22,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.processing.AbstractProcessor;
+import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.annotation.processing.SupportedOptions;
@@ -55,11 +57,13 @@ import eu.rekisoft.java.pojobooster.JsonDecorator;
         "eu.rekisoft.java.pojobooster.FactoryOf"})
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 @TargetApi(24) // STFU
-@SupportedOptions({"step", "target"})
+@SupportedOptions({"step", "target", "loglevel"})
 public class Preprocessor extends AbstractProcessor {
 
     private final JavaCompiler compiler;
+    private boolean createStub;
     private String sourcePath = null;
+    private String targetPath = null;
 
     public Preprocessor() {
         super();
@@ -67,10 +71,17 @@ public class Preprocessor extends AbstractProcessor {
     }
 
     @Override
+    public synchronized void init(ProcessingEnvironment processingEnv) {
+        super.init(processingEnv);
+        createStub = "stub".equals(processingEnv.getOptions().get("step"));
+        targetPath = processingEnv.getOptions().get("target");
+    }
+
+    @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         //System.out.println("DEBUG: " + processingEnv.getOptions());
-        System.out.println("Step: " + processingEnv.getOptions().get("step"));
-        if(sourcePath == null) {
+        //System.out.println("Step: " + processingEnv.getOptions().get("step"));
+        if(sourcePath == null && targetPath == null) {
             try {
                 JavaFileObject generationForPath = processingEnv.getFiler().createSourceFile("Killme" + System.currentTimeMillis());
                 Writer writer = generationForPath.openWriter();
@@ -126,7 +137,7 @@ public class Preprocessor extends AbstractProcessor {
             }
         }
 
-        // The idea is to annotate the factory of a interface or the concreate constructor of the desired class.
+        // The idea is to annotate the factory of a interface or the concrete constructor of the desired class.
         for(Element elem : roundEnv.getElementsAnnotatedWith(FactoryOf.class)) {
             for(AnnotationMirror annotationMirror : elem.getAnnotationMirrors()) {
                 String annotationClass = annotationMirror.getAnnotationType().asElement().asType().toString();
@@ -209,31 +220,44 @@ public class Preprocessor extends AbstractProcessor {
         for(TypeName anInterface : interfaces) {
             generated.addSuperinterface(anInterface);
         }
-        for(FieldSpec member : members) {
-            generated.addField(member);
-        }
-        for(MethodSpec method : methods) {
-            generated.addMethod(method);
+        if(createStub) {
+            generated.addModifiers(Modifier.ABSTRACT)
+                    .addStaticBlock(CodeBlock.of("throw new RuntimeException(\"This stub must not been compiled. This is a bug!\");\n"));
+        } else {
+            for(FieldSpec member : members) {
+                generated.addField(member);
+            }
+            for(MethodSpec method : methods) {
+                generated.addMethod(method);
+            }
         }
 
         JavaFile javaFile = JavaFile.builder(annotatedClass.targetType.packageName(), generated.build()).indent("    ").build();
 
         try {
             String module, dir;
-            if(sourcePath.indexOf("/build/classes/") > 0) {
+            if(targetPath != null) {
+                dir = targetPath + File.separator + annotatedClass.targetType.packageName().replace(".", File.separator);
+            } else if(sourcePath.indexOf("/build/classes/") > 0) {
                 module = sourcePath.substring(0, sourcePath.indexOf("/build/classes/"));
-                dir = module + "/src/generated/" + annotatedClass.targetType.packageName().replace(".", "/");
+                dir = module + "/src/generated/" + annotatedClass.targetType.packageName().replace(".", File.separator);
             } else {
                 // TODO the debug string should not been hardcoded
                 module = sourcePath.substring(0, sourcePath.indexOf("/build/"));
-                dir = module + "/build/generated/source/pojo/debug/" + annotatedClass.targetType.packageName().replace(".", "/");
+                dir = module + "/generated/source/pojo/debug/" + annotatedClass.targetType.packageName().replace(".", File.separator);
             }
             File directory = new File(dir);
             directory.mkdirs();
-            String targetFile = dir + "/" + annotatedClass.targetType.simpleName() + ".java";
+            String targetFile = dir + File.separator + annotatedClass.targetType.simpleName() + ".java";
             System.out.println("write to: " + targetFile);
             BufferedWriter bw = new BufferedWriter(new FileWriter(targetFile));
-            bw.append("// This file is generated. Wohoo!");
+            if(createStub) {
+                bw.append("// This file is a stub. This file should not been used!");
+                bw.newLine();
+                bw.append("// It is just required to fix problems in the classpath while generating the source files.");
+            } else {
+                bw.append("// This file is generated. Wohoo!");
+            }
             bw.newLine();
             bw.newLine();
             bw.append(javaFile.toString().trim());

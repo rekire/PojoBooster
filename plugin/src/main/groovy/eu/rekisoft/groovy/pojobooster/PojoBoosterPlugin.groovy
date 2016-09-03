@@ -3,7 +3,7 @@ package eu.rekisoft.groovy.pojobooster
 import org.gradle.api.NamedDomainObjectCollection
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.internal.logging.slf4j.OutputEventListenerBackedLogger
+import org.gradle.api.logging.Logger
 import org.gradle.tooling.BuildException
 
 import javax.tools.Diagnostic
@@ -81,8 +81,6 @@ class PojoBoosterPlugin implements Plugin<Project> {
     def applyToAndroidProject(project) {
         def androidExtension
         def variants
-
-        println "proj: " + project.getClass()
 
         if (project.plugins.hasPlugin('com.android.application')) {
             println "detected app"
@@ -178,7 +176,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
         project.file outputDirName
     }
 
-    private static void runPreprocessor(boolean justStubs, String classPath, OutputEventListenerBackedLogger logger, String variantName, NamedDomainObjectCollection sourceSets, Project project) {
+    private static void runPreprocessor(boolean justStubs, String classPath, Logger logger, String variantName, NamedDomainObjectCollection sourceSets, Project project) {
         logger.warn "Building $variantName with stubs = $justStubs"
 
         println "sources: " + sourceSets['main'].getJava()
@@ -201,7 +199,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
 
         File outDir = justStubs ? getStubDir(project) : getOutputDir(project)
 
-        File target = project.file(outDir.toString() + File.pathSeparator + variantName)
+        File target = project.file(outDir.toString() + File.separator + variantName)
         //File target = new File("build/generated/source/pojo-stubs/" + variantName);
         if (!target.exists()) {
             target.mkdirs();
@@ -212,6 +210,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
 
         // set compiler's classpath to be same as the runtime's
         List<String> optionList = Arrays.asList("-classpath", classPath, "-Astep=" + step,
+                "-Atarget=" + target.toString(), // TODO forward the current log level
                 "-d", target.toString());
 
         final JavaCompiler.CompilationTask task = compiler.getTask(null, manager, diagnostics,
