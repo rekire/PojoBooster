@@ -1,3 +1,4 @@
 @echo off
 call gradlew cle publishToMavenLocal -q
-call gradlew :examplelibrary:generateDebugPojoBoosterStubs -q
+REM call gradlew :examplelibrary:generateDebugPojoBoosterStubs -q
+call gradlew :ex:aDeb -s

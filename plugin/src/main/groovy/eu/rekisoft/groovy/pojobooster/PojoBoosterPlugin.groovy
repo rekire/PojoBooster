@@ -76,13 +76,14 @@ class PojoBoosterPlugin implements Plugin<Project> {
     def applyToAndroidProject(project) {
         def androidExtension
         def variants
+        def logger = project.logger
 
         if (project.plugins.hasPlugin('com.android.application')) {
-            println "detected app"
+            logger.info "PojoBoosterPlugin detected app project"
             androidExtension = project.plugins.getPlugin('com.android.application').extension
             variants = androidExtension.applicationVariants
         } else if (project.plugins.hasPlugin('com.android.library')) {
-            println "detected lib"
+            logger.info "PojoBoosterPlugin detected lib project"
             androidExtension = project.plugins.getPlugin('com.android.library').extension
             variants = androidExtension.libraryVariants
         } else {
@@ -90,9 +91,12 @@ class PojoBoosterPlugin implements Plugin<Project> {
         }
 
         //androidExtension.sourceSets.main.java.srcDirs += "build/generated/source/pojo/debug"
-        println "BEFORE: " + androidExtension.sourceSets.main.java.srcDirs
+        //println "BEFORE: " + androidExtension.sourceSets.main.java.srcDirs
         variants.all { variant ->
-            androidExtension.sourceSets.main.java.srcDirs += new File(getOutputDir(project), variant.name)
+            File generatedFilesDir = new File(getOutputDir(project), variant.name)
+            androidExtension.sourceSets[sourceSetName(variant)].java.srcDirs += generatedFilesDir
+            javaCompile.source += generatedFilesDir
+            //androidExtension.sourceSets.main.java.srcDirs += new File(getOutputDir(project), variant.name)
 
             String path = project.configurations.pojobooster.asPath
             def stubTaskName = "generate${variant.name.capitalize()}PojoBoosterStubs"
@@ -121,7 +125,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
             project.tasks.preBuild.dependsOn classTaskName
         }
 
-        println "AFTER: " + androidExtension.sourceSets.main.java.srcDirs
+        //println "AFTER: " + androidExtension.sourceSets.main.java.srcDirs
 
         /*
         variants.all { variant ->
