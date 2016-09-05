@@ -219,9 +219,17 @@ class PojoBoosterPlugin implements Plugin<Project> {
             output.mkdirs()
         }
 
+        LogLevel logLevel = LogLevel.ERROR
+        for(LogLevel level : LogLevel.values()) {
+            if(logger.isEnabled(level)) {
+                logLevel = level
+                break;
+            }
+        }
+
         // set compiler's classpath to be same as the runtime's
         List<String> optionList = Arrays.asList("-classpath", classPath, "-Astep=" + step,
-                "-Atarget=" + target.toString(), // TODO forward the current log level
+                "-Atarget=" + target.toString(), "-Aloglevel" + logLevel.name(), "-Avariant=" + variantName,
                 "-d", output.toString());
 
         final JavaCompiler.CompilationTask task = compiler.getTask(null, manager, diagnostics,

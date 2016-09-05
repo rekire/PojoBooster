@@ -2,8 +2,8 @@ apply plugin:'java'
 apply plugin: 'maven-publish'
 
 dependencies {
-    //compile project(':annotations')
-    compile "eu.rekisoft.pojobooster:Annotations:$project.libVersion" //project(':annotations')
+    compile project(':annotations')
+    //compile "eu.rekisoft.pojobooster:Annotations:$project.libVersion" //project(':annotations')
     compile 'com.squareup:javapoet:1.7.0'
 }
 

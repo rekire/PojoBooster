@@ -57,13 +57,15 @@ import eu.rekisoft.java.pojobooster.JsonDecorator;
         "eu.rekisoft.java.pojobooster.FactoryOf"})
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 @TargetApi(24) // STFU
-@SupportedOptions({"step", "target", "loglevel"})
+@SupportedOptions({"step", "target", "loglevel", "variant"})
 public class Preprocessor extends AbstractProcessor {
 
     private final JavaCompiler compiler;
     private boolean createStub;
     private String sourcePath = null;
     private String targetPath = null;
+    private String logLevel = null;
+    private String variantName = null;
 
     public Preprocessor() {
         super();
@@ -75,6 +77,8 @@ public class Preprocessor extends AbstractProcessor {
         super.init(processingEnv);
         createStub = "stub".equals(processingEnv.getOptions().get("step"));
         targetPath = processingEnv.getOptions().get("target");
+        logLevel = processingEnv.getOptions().get("loglevel");
+        variantName = processingEnv.getOptions().get("variant");
     }
 
     @Override
@@ -199,7 +203,7 @@ public class Preprocessor extends AbstractProcessor {
 
         for(Class<? extends Extension> extension : annotatedClass.extensions) {
             try {
-                Extension impl = extension.getDeclaredConstructor(ExtensionSettings.class).newInstance(new ExtensionSettings(annotatedClass, environment, processingEnv));
+                Extension impl = extension.getDeclaredConstructor(ExtensionSettings.class).newInstance(new ExtensionSettings(annotatedClass, environment, processingEnv, logLevel, variantName, createStub));
                 extensions[i++] = impl;
                 annotatedClass.interfaces.addAll(impl.getAttentionalInterfaces());
             } catch(ReflectiveOperationException e) {
@@ -249,7 +253,9 @@ public class Preprocessor extends AbstractProcessor {
             File directory = new File(dir);
             directory.mkdirs();
             String targetFile = dir + File.separator + annotatedClass.targetType.simpleName() + ".java";
-            System.out.println("write to: " + targetFile);
+            if("DEBUG".equals(logLevel)) {
+                System.out.println("write to: " + targetFile);
+            }
             BufferedWriter bw = new BufferedWriter(new FileWriter(targetFile));
             if(createStub) {
                 bw.append("// This file is a stub. This file should not been used!");
@@ -263,52 +269,10 @@ public class Preprocessor extends AbstractProcessor {
             bw.append(javaFile.toString().trim());
             bw.flush();
             bw.close();
-
-            //compile(targetFile);
         } catch(IOException e) {
             e.printStackTrace();
         } catch(StringIndexOutOfBoundsException e) {
             throw new RuntimeException("Huston we have a problem at " + sourcePath, e);
-        }
-    }
-
-    private void compile(String targetFile) {
-        // https://www.javacodegeeks.com/2015/09/java-compiler-api.html
-        final DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
-        final StandardJavaFileManager manager = compiler.getStandardFileManager(
-                diagnostics, null, null);
-
-        final Iterable<? extends JavaFileObject> sources =
-                manager.getJavaFileObjectsFromFiles(Arrays.asList(new File(targetFile)));
-
-        File target = new File("D:\\Programmierung\\PojoBooster\\examplelibrary\\build\\intermediates\\classes\\debug");
-        if(!target.exists()) {
-            target.mkdirs();
-        }
-
-        // gradlew cle publishToMavenLocal
-        // gradlew :ex:aDeb --stacktrace
-
-        // set compiler's classpath to be same as the runtime's
-        List<String> optionList = Arrays.asList("-classpath", "C:\\Users\\rekir_000\\.m2\\repository\\eu\\rekisoft\\pojobooster\\Annotations\\0.0.0\\Annotations-0.0.0.jar;" +
-                "C:\\Users\\rekir_000\\.m2\\repository\\eu\\rekisoft\\pojobooster\\Preprocessor\\0.0.0\\Preprocessor-0.0.0.jar;" +
-                "C:\\Users\\rekir_000\\.gradle\\caches\\modules-2\\files-2.1\\com.squareup\\javapoet\\1.7.0\\4fdcf1fc27c1a8f55d1109df986c923152f07759\\javapoet-1.7.0.jar;" +
-                "G:\\sdk\\extras\\android\\m2repository\\com\\android\\support\\support-annotations\\24.1.0\\support-annotations-24.1.0.jar;" +
-                "C:\\Users\\rekir_000\\.gradle\\caches\\modules-2\\files-2.1\\org.robolectric\\android-all\\6.0.0_r1-robolectric-0\\ae05eb8f25e9ec919c029f04164994f3c53e255d\\android-all-6.0.0_r1-robolectric-0.jar;" +
-                "D:\\Programmierung\\PojoBooster\\examplelibrary\\src\\main\\java;D:\\Programmierung\\PojoBooster\\examplelibrary\\build\\intermediates\\classes\\debug",
-                "-d", "D:\\Programmierung\\PojoBooster\\examplelibrary\\build\\intermediates\\classes\\debug");
-
-        final JavaCompiler.CompilationTask task = compiler.getTask(null, manager, diagnostics,
-                optionList, null, sources);
-        task.call();
-
-        for(final Diagnostic<? extends JavaFileObject> diagnostic :
-                diagnostics.getDiagnostics()) {
-
-            System.out.format("SELF-COMPILE: %s, line %d in %s\n",
-                    diagnostic.getMessage(null),
-                    diagnostic.getLineNumber(),
-                    diagnostic.getSource().getName());
         }
     }
 
