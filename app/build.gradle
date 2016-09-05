@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'eu.rekisoft.pojobooster'
 
 android {
     compileSdkVersion "android-$project.compileSdkVersion"

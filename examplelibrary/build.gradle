@@ -20,27 +20,9 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-
-    //sourceSets {
-    //    main.java.srcDirs += "build/generated/source/pojo/debug"
-    //}
 }
 
 dependencies {
-    //compile fileTree(dir: 'libs', include: ['*.jar'])
-    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
-        exclude group: 'com.android.support', module: 'support-annotations'
-    })
-    //compile project(':annotations')
-    //compile project(':preprocessor')
     compile 'com.android.support:appcompat-v7:24.1.1'
     testCompile 'junit:junit:4.12'
-}
-
-task deleteGeneratedCode(type: Delete) {
-    delete "build/generated/source/pojo"
-}
-
-if (project.tasks.findByName('clean')) {
-    project.tasks.getByName('clean').dependsOn project.deleteGeneratedCode
 }
