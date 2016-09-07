@@ -13,15 +13,17 @@ public class ExtensionSettings {
     final AnnotatedClass annotatedClass;
     final ProcessingEnvironment processingEnv;
     final String logLevel;
-    final String flavorName;
+    final String variantName;
     final boolean createStub;
 
-    ExtensionSettings(AnnotatedClass annotatedClass, RoundEnvironment environment, ProcessingEnvironment processingEnv, String logLevel, String flavorName, boolean stub) {
+    ExtensionSettings(AnnotatedClass annotatedClass, RoundEnvironment environment,
+                      ProcessingEnvironment processingEnv, String logLevel, String variantName,
+                      boolean stub) {
         this.annotatedClass = annotatedClass;
         this.environment = environment;
         this.processingEnv = processingEnv;
         this.logLevel = logLevel;
-        this.flavorName = flavorName;
+        this.variantName = variantName;
         this.createStub = stub;
     }
 }

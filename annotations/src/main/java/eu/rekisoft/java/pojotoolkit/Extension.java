@@ -8,7 +8,6 @@ import com.squareup.javapoet.TypeName;
 
 import java.util.List;
 
-import javax.lang.model.element.Element;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
@@ -53,4 +52,16 @@ public abstract class Extension {
 
     @NonNull
     public abstract List<MethodSpec> generateCode();
+
+    protected String getVariantName() {
+        return settings.variantName;
+    }
+
+    protected boolean isCreatingStub() {
+        return settings.createStub;
+    }
+
+    protected String getLogLevel() {
+        return settings.logLevel;
+    }
 }
