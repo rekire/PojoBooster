@@ -15,20 +15,14 @@ class PojoBoosterPlugin implements Plugin<Project> {
         project.configurations.create 'pojobooster'
         project.extensions.create 'pojobooster', PojoBoosterPluginExtension
 
-        // TODO this should simplify it and not more complex
-
         project.dependencies.
                 add("compile", project.getDependencies().create("eu.rekisoft.pojobooster:Annotations:$project.libVersion"))
         project.dependencies.
                 add("compile", project.getDependencies().create("com.android.support:support-annotations:24.1.0"))
         project.dependencies.
-                add("pojobooster", project.getDependencies().create("eu.rekisoft.pojobooster:Annotations:$project.libVersion"))
-        project.dependencies.
                 add("pojobooster", project.getDependencies().create("eu.rekisoft.pojobooster:Preprocessor:$project.libVersion"))
         project.dependencies.
                 add("pojobooster", project.getDependencies().create("com.squareup:javapoet:1.7.0"))
-        project.dependencies.
-                add("pojobooster", project.getDependencies().create("com.android.support:support-annotations:24.1.0"))
         project.dependencies.
                 add("pojobooster", project.getDependencies().create("org.robolectric:android-all:6.0.0_r1-robolectric-0"))
 
@@ -45,7 +39,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
     }
 
     def applyToJavaProject(project) {
-
+        // add the required compile time libs to the classpath
         project.sourceSets.main.compileClasspath += project.configurations.pojobooster
 
         // add the generated sources to the source sets
