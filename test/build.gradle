@@ -9,21 +9,6 @@ jar {
     }
 }
 
-configurations {
-    provided
-    compile.extendsFrom provided
-}
-
-sourceSets {
-    main {
-        compileClasspath += configurations.provided
-        // TODO this DSL should be added by the gradle plugin
-        java {
-            srcDir "build/generated/source/pojo"
-        }
-    }
-}
-
 task copyLibs(type: Copy) {
     from configurations.compile
     into 'build/libs'
@@ -51,20 +36,6 @@ task testPrecompiler {
 }
 
 //noinspection GroovyAssignabilityCheck
-//*
 dependencies {
     compile project(':annotations')
-    //compileOnly project(':preprocessor')
-    provided 'com.google.android:android:4.1.1.4'
-    provided 'com.google.android:annotations:4.1.1.4'
-    provided 'com.android.databinding:baseLibrary:2.2.0-alpha5'
 }
-
-task deleteGeneratedCode(type: Delete) {
-    delete "src/generated"
-}
-
-if (project.tasks.findByName('clean')) {
-    project.tasks.getByName('clean').dependsOn project.deleteGeneratedCode
-}
-//*/

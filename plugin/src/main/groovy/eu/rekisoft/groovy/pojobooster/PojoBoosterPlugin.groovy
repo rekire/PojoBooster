@@ -2,7 +2,6 @@ package eu.rekisoft.groovy.pojobooster
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.file.SourceDirectorySet
 import org.gradle.api.logging.LogLevel
 import org.gradle.api.logging.Logger
 import org.gradle.tooling.BuildException
@@ -45,44 +44,17 @@ class PojoBoosterPlugin implements Plugin<Project> {
         }
     }
 
-    // FIXME
     def applyToJavaProject(project) {
-        /*
-        File aptOutputDir = getOutputDir(project, null)
-        println "do some magic with $aptOutputDir.path"
-        project.task('addPojoboosterCompilerArgs') << {
-            project.compileJava.options.compilerArgs.addAll '-processorpath',
-                    project.configurations.apt.asPath, '-s', aptOutputDir.path
 
-            project.compileJava.source = project.compileJava.source.filter {
-                !it.path.startsWith(aptOutputDir.path)
-            }
+        project.sourceSets.main.compileClasspath += project.configurations.pojobooster
 
-            project.compileJava.doFirst {
-                logger.info "Generating sources using the annotation processing tool:"
-                logger.info "  Output directory: ${aptOutputDir}"
-
-                variant.javaCompile.classpath += project.configurations.pojobooster
-
-                aptOutputDir.mkdirs()
-            }
+        // add the generated sources to the source sets
+        List<String> includes = new ArrayList<>()
+        for(String include : project.sourceSets.main.java.includes) {
+            includes.add(include)
         }
-        project.tasks.getByName('compileJava').dependsOn 'addPojoboosterCompilerArgs'
-        //*/
-
-        //def extension = project.plugins.getPlugin('java').sourceSets
-
-        //println "plugin: " + project.plugins.getPlugin('java')
-        //println "sources: " + project.sourceSets.main.getClass()
-
-        //return;
-
-        //FIXME: def generatedFilesDir = getOutputDir(project, null)
-        //FIXME: project.sourceSets.main.compileClasspath.add(Project.files((Object)generatedFilesDir))
-        //FIXME: project.sourceSets.main.runtimeClasspath.add(Project.files((Object)generatedFilesDir))
-        //project.sourceSets("generatedStub")
-
-        println "TYPE: " + project.sourceSets.main.getJava().getClass() + " " + (project.sourceSets.main.getJava() instanceof SourceDirectorySet)
+        project.sourceSets.main.java.setIncludes(Arrays.asList("build/generated/source/pojo/**.*"))
+        //println "includes: " + project.sourceSets.main.getJava().getIncludes()
 
         String path = project.configurations.pojobooster.asPath
         def stubTaskName = "generatePojoBoosterStubs"
@@ -94,8 +66,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
             //inputs.file androidExtension.sourceSets.main.java.srcDirs
             //outputs.dir 'build/generated/source/pojo-stubs/' + variant.name
             doLast {
-                Set<File> srcDirs = project.sourceSets.main.getJava().getSrcDirs()
-                runPreprocessor(true, path, logger, null, srcDirs, project)
+                runPreprocessor(true, path, logger, null, project.sourceSets.main.java.srcDirs, project)
             }
         }
         project.task(classTaskName) {
@@ -105,10 +76,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
             //inputs.file 'build/generated/source/pojo-stubs/' + variant.name
             //outputs.dir 'build/generated/source/pojo/' + variant.name
             doLast {
-                project.sourceSets.main.compileClasspath.add(project.files("build/generated/pojo-stubs/"))
-                Set<File> srcDirs = project.sourceSets.main.getJava().getSrcDirs()
-                srcDirs += project.files("build/generated/pojo-stubs")
-                runPreprocessor(false, path, logger, null, srcDirs, project)
+                runPreprocessor(false, path, logger, null, project.sourceSets.main.java.srcDirs, project)
             }
         }
         project.tasks[classTaskName].dependsOn stubTaskName
@@ -137,8 +105,6 @@ class PojoBoosterPlugin implements Plugin<Project> {
             androidExtension.sourceSets[sourceSetName(variant)].java.srcDirs += generatedFilesDir
             javaCompile.source += generatedFilesDir
 
-            println "exa " + androidExtension.sourceSets['main'].getJava().getClass() + " " + (androidExtension.sourceSets['main'].getJava() instanceof SourceDirectorySet)
-
             String path = project.configurations.pojobooster.asPath
             def stubTaskName = "generate${variant.name.capitalize()}PojoBoosterStubs"
             def classTaskName = "generate${variant.name.capitalize()}PojoBoosterClasses"
@@ -149,7 +115,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
                 //inputs.file androidExtension.sourceSets.main.java.srcDirs
                 //outputs.dir 'build/generated/source/pojo-stubs/' + variant.name
                 doLast {
-                    runPreprocessor(true, path, logger, variant.name, androidExtension.sourceSets['main'].getJava().getSrcDirs(), project)
+                    runPreprocessor(true, path, logger, variant.name, androidExtension.sourceSets.main.java.srcDirs, project)
                 }
             }
             project.task(classTaskName) {
@@ -159,7 +125,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
                 //inputs.file 'build/generated/source/pojo-stubs/' + variant.name
                 //outputs.dir 'build/generated/source/pojo/' + variant.name
                 doLast {
-                    runPreprocessor(false, path, logger, variant.name, androidExtension.sourceSets['main'].getJava().getSrcDirs(), project)
+                    runPreprocessor(false, path, logger, variant.name, androidExtension.sourceSets.main.java.srcDirs, project)
                 }
             }
             project.tasks[classTaskName].dependsOn stubTaskName
