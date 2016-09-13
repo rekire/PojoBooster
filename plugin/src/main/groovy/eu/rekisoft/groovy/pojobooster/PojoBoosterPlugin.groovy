@@ -1,18 +1,13 @@
 package eu.rekisoft.groovy.pojobooster
 
-import org.gradle.api.NamedDomainObjectCollection
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.file.SourceDirectorySet
 import org.gradle.api.logging.LogLevel
 import org.gradle.api.logging.Logger
 import org.gradle.tooling.BuildException
 
-import javax.tools.Diagnostic
-import javax.tools.DiagnosticCollector
-import javax.tools.JavaCompiler
-import javax.tools.JavaFileObject
-import javax.tools.StandardJavaFileManager
-import javax.tools.ToolProvider
+import javax.tools.*
 
 class PojoBoosterPlugin implements Plugin<Project> {
 
@@ -85,8 +80,9 @@ class PojoBoosterPlugin implements Plugin<Project> {
         //FIXME: def generatedFilesDir = getOutputDir(project, null)
         //FIXME: project.sourceSets.main.compileClasspath.add(Project.files((Object)generatedFilesDir))
         //FIXME: project.sourceSets.main.runtimeClasspath.add(Project.files((Object)generatedFilesDir))
+        //project.sourceSets("generatedStub")
 
-        println "TYPE: " + project.sourceSets.main.getClass()
+        println "TYPE: " + project.sourceSets.main.getJava().getClass() + " " + (project.sourceSets.main.getJava() instanceof SourceDirectorySet)
 
         String path = project.configurations.pojobooster.asPath
         def stubTaskName = "generatePojoBoosterStubs"
@@ -98,7 +94,8 @@ class PojoBoosterPlugin implements Plugin<Project> {
             //inputs.file androidExtension.sourceSets.main.java.srcDirs
             //outputs.dir 'build/generated/source/pojo-stubs/' + variant.name
             doLast {
-                //FIXME: runPreprocessor(true, path, logger, null, project.sourceSets.main, project)
+                Set<File> srcDirs = project.sourceSets.main.getJava().getSrcDirs()
+                runPreprocessor(true, path, logger, null, srcDirs, project)
             }
         }
         project.task(classTaskName) {
@@ -108,7 +105,10 @@ class PojoBoosterPlugin implements Plugin<Project> {
             //inputs.file 'build/generated/source/pojo-stubs/' + variant.name
             //outputs.dir 'build/generated/source/pojo/' + variant.name
             doLast {
-                //FIXME: runPreprocessor(false, path, logger, null, project.sourceSets.main, project)
+                project.sourceSets.main.compileClasspath.add(project.files("build/generated/pojo-stubs/"))
+                Set<File> srcDirs = project.sourceSets.main.getJava().getSrcDirs()
+                srcDirs += project.files("build/generated/pojo-stubs")
+                runPreprocessor(false, path, logger, null, srcDirs, project)
             }
         }
         project.tasks[classTaskName].dependsOn stubTaskName
@@ -137,6 +137,8 @@ class PojoBoosterPlugin implements Plugin<Project> {
             androidExtension.sourceSets[sourceSetName(variant)].java.srcDirs += generatedFilesDir
             javaCompile.source += generatedFilesDir
 
+            println "exa " + androidExtension.sourceSets['main'].getJava().getClass() + " " + (androidExtension.sourceSets['main'].getJava() instanceof SourceDirectorySet)
+
             String path = project.configurations.pojobooster.asPath
             def stubTaskName = "generate${variant.name.capitalize()}PojoBoosterStubs"
             def classTaskName = "generate${variant.name.capitalize()}PojoBoosterClasses"
@@ -147,7 +149,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
                 //inputs.file androidExtension.sourceSets.main.java.srcDirs
                 //outputs.dir 'build/generated/source/pojo-stubs/' + variant.name
                 doLast {
-                    runPreprocessor(true, path, logger, variant.name, androidExtension.sourceSets, project)
+                    runPreprocessor(true, path, logger, variant.name, androidExtension.sourceSets['main'].getJava().getSrcDirs(), project)
                 }
             }
             project.task(classTaskName) {
@@ -157,7 +159,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
                 //inputs.file 'build/generated/source/pojo-stubs/' + variant.name
                 //outputs.dir 'build/generated/source/pojo/' + variant.name
                 doLast {
-                    runPreprocessor(false, path, logger, variant.name, androidExtension.sourceSets, project)
+                    runPreprocessor(false, path, logger, variant.name, androidExtension.sourceSets['main'].getJava().getSrcDirs(), project)
                 }
             }
             project.tasks[classTaskName].dependsOn stubTaskName
@@ -195,10 +197,10 @@ class PojoBoosterPlugin implements Plugin<Project> {
         project.file outputDir
     }
 
-    private static void runPreprocessor(boolean justStubs, String classPath, Logger logger, String variantName, NamedDomainObjectCollection sourceSets, Project project) {
+    private static void runPreprocessor(boolean justStubs, String classPath, Logger logger, String variantName, Set<File> sourceDirs, Project project) {
         logger.debug "Generating code for $variantName with stubs = $justStubs"
 
-        List<String> sourceFiles = finder(sourceSets['main'].getJava().getSrcDirs())
+        List<String> sourceFiles = finder(sourceDirs)
 
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler()
 
@@ -229,7 +231,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
 
         // set compiler's classpath to be same as the runtime's
         List<String> optionList = Arrays.asList("-classpath", classPath, "-Astep=" + step,
-                "-Atarget=" + target.toString(), "-Aloglevel" + logLevel.name(), "-Avariant=" + variantName,
+                "-Atarget=" + target.toString(), "-Aloglevel=" + logLevel.name(), "-Avariant=" + variantName,
                 "-d", output.toString());
 
         final JavaCompiler.CompilationTask task = compiler.getTask(null, manager, diagnostics,

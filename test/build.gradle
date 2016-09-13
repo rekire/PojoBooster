@@ -1,5 +1,5 @@
 apply plugin:'java'
-//apply plugin: 'eu.rekisoft.pojobooster'
+apply plugin: 'eu.rekisoft.pojobooster'
 
 //noinspection GroovyAssignabilityCheck
 jar {
@@ -19,7 +19,7 @@ sourceSets {
         compileClasspath += configurations.provided
         // TODO this DSL should be added by the gradle plugin
         java {
-            srcDir "src/generated"
+            srcDir "build/generated/source/pojo"
         }
     }
 }
@@ -54,7 +54,7 @@ task testPrecompiler {
 //*
 dependencies {
     compile project(':annotations')
-    compileOnly project(':preprocessor')
+    //compileOnly project(':preprocessor')
     provided 'com.google.android:android:4.1.1.4'
     provided 'com.google.android:annotations:4.1.1.4'
     provided 'com.android.databinding:baseLibrary:2.2.0-alpha5'
