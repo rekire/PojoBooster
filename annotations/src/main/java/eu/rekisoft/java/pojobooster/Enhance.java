@@ -4,9 +4,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import java.security.cert.*;
 
-import eu.rekisoft.java.pojotoolkit.*;
 import eu.rekisoft.java.pojotoolkit.Extension;
 
 /**
@@ -18,5 +16,6 @@ import eu.rekisoft.java.pojotoolkit.Extension;
 @Target(ElementType.TYPE)
 public @interface Enhance {
     Class<? extends Extension>[] extensions();
+
     String name();
 }

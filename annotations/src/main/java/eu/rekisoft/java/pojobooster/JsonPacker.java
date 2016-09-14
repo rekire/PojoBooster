@@ -1,7 +1,6 @@
 package eu.rekisoft.java.pojobooster;
 
 import android.annotation.SuppressLint;
-import android.support.annotation.IntegerRes;
 import android.support.annotation.NonNull;
 
 import com.squareup.javapoet.ClassName;
@@ -11,15 +10,11 @@ import com.squareup.javapoet.TypeName;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
 import javax.lang.model.element.Modifier;
-import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.TypeKind;
 
 import eu.rekisoft.java.pojotoolkit.AnnotatedClass;
@@ -55,7 +50,7 @@ public class JsonPacker extends Extension {
         method.addStatement("StringBuilder sb = new StringBuilder(\"{\")");
         String delimiter = "";
         for(AnnotatedClass.Member member : annotatedClass.members) {
-            String fieldName = (String)member.getAnnotatedProperty(Field.class, "value");
+            String fieldName = (String) member.getAnnotatedProperty(Field.class, "value");
             if(fieldName == null || fieldName.isEmpty()) {
                 fieldName = member.name;
             }
@@ -72,7 +67,7 @@ public class JsonPacker extends Extension {
     }
 
     private void addElementToJson(MethodSpec.Builder method, AnnotatedClass.Member member) {
-        String format = (String)member.getAnnotatedProperty(Formatter.class, "value");
+        String format = (String) member.getAnnotatedProperty(Formatter.class, "value");
         LocaleHelper locale = LocaleHelper.from(member);
         boolean needsNullCheck = /*!isInstanceOf(member, Number.class) && !isInstanceOf(member, Boolean.class) &&*/ !member.type.getKind().isPrimitive() && member.type.getKind() != TypeKind.ARRAY;
         if(needsNullCheck) {

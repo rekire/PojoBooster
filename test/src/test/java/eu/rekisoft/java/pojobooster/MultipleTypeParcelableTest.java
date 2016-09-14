@@ -34,7 +34,7 @@ public class MultipleTypeParcelableTest {
         sut.aSerializable = UUID.randomUUID();
         sut.boxedBoolean = Boolean.TRUE;
         sut.boxedByte = 21;
-        sut.boxedShort = (short)23456;
+        sut.boxedShort = (short) 23456;
         sut.boxedInt = 987654321;
         sut.boxedLong = 31415592653L;
         sut.boxedChar = 'b';
@@ -47,7 +47,7 @@ public class MultipleTypeParcelableTest {
         sut.longArray = new long[] {111222333444L, 123L, 987654321L};
         sut.charArray = "World".toCharArray();
         sut.floatArray = new float[] {1.5f, 2.25f};
-        sut.doubleArray = new double[] {132,456,789};
+        sut.doubleArray = new double[] {132, 456, 789};
         sut.aEnum = MultipleTypeParcelable.MyEnum.foobar;
         sut.date = new Date(0);
         sut.bundle = null;

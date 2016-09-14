@@ -10,7 +10,7 @@ sourceSets {
 }
 dependencies {
     provided 'org.robolectric:android-all:6.0.0_r1-robolectric-0'
-    provided 'com.android.support:support-annotations:24.1.0'
+    provided 'com.android.support:support-annotations:24.1.1'
     provided 'com.squareup:javapoet:1.7.0'
 }
 

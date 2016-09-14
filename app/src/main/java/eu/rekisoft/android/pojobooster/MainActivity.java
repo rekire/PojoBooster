@@ -1,10 +1,7 @@
 package eu.rekisoft.android.pojobooster;
 
-import android.os.Parcelable;
-import android.support.annotation.IntDef;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.view.View;
+import android.support.v7.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
 

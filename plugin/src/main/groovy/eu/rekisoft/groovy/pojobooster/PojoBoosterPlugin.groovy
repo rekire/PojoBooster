@@ -27,9 +27,9 @@ class PojoBoosterPlugin implements Plugin<Project> {
                 add("pojobooster", project.getDependencies().create("org.robolectric:android-all:6.0.0_r1-robolectric-0"))
 
         project.afterEvaluate {
-            if (project.plugins.hasPlugin('java')) {
+            if(project.plugins.hasPlugin('java')) {
                 applyToJavaProject(project)
-            } else if (project.plugins.hasPlugin('com.android.application')
+            } else if(project.plugins.hasPlugin('com.android.application')
                     || project.plugins.hasPlugin('com.android.library')) {
                 applyToAndroidProject(project)
             } else {
@@ -56,7 +56,6 @@ class PojoBoosterPlugin implements Plugin<Project> {
         project.task(stubTaskName) {
             group = "Code generation"
             description = "Generated stubs which will been replaced by $classTaskName."
-            // TODO enable when stable
             inputs.file project.sourceSets.main.java.srcDirs
             outputs.dir 'build/generated/source/pojo-stubs'
             doLast {
@@ -66,7 +65,6 @@ class PojoBoosterPlugin implements Plugin<Project> {
         project.task(classTaskName) {
             group = "Code generation"
             description = "Generated classes for the java project."
-            // TODO enable when stable
             inputs.file 'build/generated/source/pojo-stubs'
             outputs.dir 'build/generated/source/pojo/'
             doLast {
@@ -82,11 +80,11 @@ class PojoBoosterPlugin implements Plugin<Project> {
         def variants
         def logger = project.logger
 
-        if (project.plugins.hasPlugin('com.android.application')) {
+        if(project.plugins.hasPlugin('com.android.application')) {
             logger.info "PojoBoosterPlugin detected app project"
             androidExtension = project.plugins.getPlugin('com.android.application').extension
             variants = androidExtension.applicationVariants
-        } else if (project.plugins.hasPlugin('com.android.library')) {
+        } else if(project.plugins.hasPlugin('com.android.library')) {
             logger.info "PojoBoosterPlugin detected lib project"
             androidExtension = project.plugins.getPlugin('com.android.library').extension
             variants = androidExtension.libraryVariants
@@ -105,7 +103,6 @@ class PojoBoosterPlugin implements Plugin<Project> {
             project.task(stubTaskName) {
                 group = "Code generation"
                 description = "Generated stubs for the ${variant.name} variant which will been replaced by $classTaskName."
-                // TODO enable when stable
                 inputs.file androidExtension.sourceSets.main.java.srcDirs
                 outputs.dir 'build/generated/source/pojo-stubs/' + variant.name
                 doLast {
@@ -115,7 +112,6 @@ class PojoBoosterPlugin implements Plugin<Project> {
             project.task(classTaskName) {
                 group = "Code generation"
                 description = "Generated classes for the ${variant.name} variant."
-                // TODO enable when stable
                 inputs.file 'build/generated/source/pojo-stubs/' + variant.name
                 outputs.dir 'build/generated/source/pojo/' + variant.name
                 doLast {
@@ -198,7 +194,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
                 optionList, null, sources);
         task.call();
 
-        for (final Diagnostic<? extends JavaFileObject> diagnostic :
+        for(final Diagnostic<? extends JavaFileObject> diagnostic :
                 diagnostics.getDiagnostics()) {
             logger.log(compileLogLevel, String.format("COMPILE-Error: %s, line %d in %s",
                     diagnostic.getMessage(null),
@@ -206,6 +202,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
                     diagnostic.getSource() != null ? diagnostic.getSource().getName() : "null"));
         }
     }
+
     public static File[] finder(Set<File> dirs) {
         List<File> files = new ArrayList<>();
         for(File dir : dirs) {
@@ -213,12 +210,13 @@ class PojoBoosterPlugin implements Plugin<Project> {
         }
         return files;
     }
+
     private static void scanDir(File dir, List<File> files) {
         if(dir.exists()) {
             files.addAll(dir.listFiles(new FilenameFilter() {
                 public boolean accept(File file, String filename) {
                     File full = new File(file, filename)
-                    if (full.isDirectory()) {
+                    if(full.isDirectory()) {
                         scanDir(full, files)
                     }
                     return filename.endsWith(".java");

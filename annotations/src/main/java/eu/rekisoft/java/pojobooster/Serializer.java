@@ -30,12 +30,11 @@ public class Serializer extends Extension {
         super(settings);
         String hashInfo = annotatedClass.targetType.toString();
         for(AnnotatedClass.Member member : annotatedClass.members) {
-            Element elem = member.element;
             //Field field = member.annotation;
             //String message = "Field annotation found in " + elem.getSimpleName()
             //        + " with " + elem.getSimpleName() + " -> " + field.value();
             //System.out.println(elem.getEnclosingElement().asType() + " - " + elem.asType() + " " + elem.getSimpleName());
-            hashInfo += "\n" + elem.asType() + " " + elem.getSimpleName();
+            hashInfo += "\n" + member.type + " " + member.typeName;
             //classes.get(typeElement).add(elem);
             //String message = "Field annotation found in " + elem.getSimpleName()
             //        + " with " + elem.getSimpleName() + " -> " + element.value();

@@ -56,17 +56,11 @@ import eu.rekisoft.java.pojobooster.JsonDecorator;
 @SupportedOptions({"step", "target", "loglevel", "variant"})
 public class Preprocessor extends AbstractProcessor {
 
-    private final JavaCompiler compiler;
     private boolean createStub;
     private String sourcePath = null;
     private String targetPath = null;
     private String logLevel = null;
     private String variantName = null;
-
-    public Preprocessor() {
-        super();
-        compiler = ToolProvider.getSystemJavaCompiler();
-    }
 
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
@@ -102,7 +96,7 @@ public class Preprocessor extends AbstractProcessor {
             if(elem.getKind() != ElementKind.CLASS) {
                 throw new IllegalArgumentException("No class was annotated");
             }
-            List<? extends Element> members = processingEnv.getElementUtils().getAllMembers((TypeElement)elem);
+            List<? extends Element> members = processingEnv.getElementUtils().getAllMembers((TypeElement) elem);
             // look at all methods and fields
             List<Element> fields = new ArrayList<>();
             List<Element> methods = new ArrayList<>();
@@ -123,13 +117,13 @@ public class Preprocessor extends AbstractProcessor {
                 String annotationClass = annotationMirror.getAnnotationType().asElement().asType().toString();
                 // select our annotation
                 if(Enhance.class.getName().equals(annotationClass)) {
-                    writeFile(collectInfo(annotationMirror, (TypeElement)elem, fields, methods, constructors), constructors, roundEnv);
+                    writeFile(collectInfo(annotationMirror, (TypeElement) elem, fields, methods, constructors), constructors, roundEnv);
                 }
             }
         }
 
         for(Element elem : roundEnv.getElementsAnnotatedWith(JsonDecorator.class)) {
-            Method method = Method.from((ExecutableElement)elem);
+            Method method = Method.from((ExecutableElement) elem);
             if(!method.matchesTypes(String.class, StringBuilder.class)) {
                 processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "Yey " + elem + " this is fine!");
             } else {
@@ -176,7 +170,7 @@ public class Preprocessor extends AbstractProcessor {
             for(Element element : constructors) {
                 MethodSpec.Builder constructor = MethodSpec.constructorBuilder();
                 StringBuilder sb = new StringBuilder("super(");
-                List<? extends TypeMirror> argTypes = ((ExecutableType)element.asType()).getParameterTypes();
+                List<? extends TypeMirror> argTypes = ((ExecutableType) element.asType()).getParameterTypes();
                 for(int i = 0; i < argTypes.size(); i++) {
                     // TODO find some trick to read out the real name
                     String argName = "arg" + i;
@@ -224,8 +218,8 @@ public class Preprocessor extends AbstractProcessor {
             generated.addModifiers(Modifier.ABSTRACT);
             generated.addMethod(
                     MethodSpec.constructorBuilder()
-                    .addStatement("throw new $T(\"This stub must not been compiled. This is a bug!\")", ClassName.get(UnsupportedOperationException.class))
-                    .build());
+                            .addStatement("throw new $T(\"This stub must not been compiled. This is a bug!\")", ClassName.get(UnsupportedOperationException.class))
+                            .build());
         } else {
             for(FieldSpec member : members) {
                 generated.addField(member);
@@ -281,8 +275,8 @@ public class Preprocessor extends AbstractProcessor {
         String targetName = type.getSimpleName().toString();
         for(Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : annotationMirror.getElementValues().entrySet()) {
             if("extensions".equals(entry.getKey().getSimpleName().toString())) {
-                for(AnnotationValue extension : (List<AnnotationValue>)entry.getValue().getValue()) {
-                    DeclaredType extensionType = (DeclaredType)extension.getValue();
+                for(AnnotationValue extension : (List<AnnotationValue>) entry.getValue().getValue()) {
+                    DeclaredType extensionType = (DeclaredType) extension.getValue();
                     try {
                         extensions.add(Class.forName(extensionType.toString()));
                     } catch(ReflectiveOperationException e) {

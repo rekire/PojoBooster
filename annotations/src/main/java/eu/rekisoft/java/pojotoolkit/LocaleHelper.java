@@ -5,7 +5,6 @@ import android.annotation.SuppressLint;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.TypeName;
 
-import java.text.SimpleDateFormat;
 import java.util.Locale;
 
 import eu.rekisoft.java.pojobooster.Formatter;
@@ -21,7 +20,7 @@ public class LocaleHelper {
     @SuppressLint("NewApi")
     private LocaleHelper(AnnotatedClass.Member member) {
         type = ClassName.get(Locale.class);
-        String locale = (String)member.getAnnotatedProperty(Formatter.class, "locale");
+        String locale = (String) member.getAnnotatedProperty(Formatter.class, "locale");
         if(locale == null || locale.isEmpty()) {
             // use default
             prefix = "";

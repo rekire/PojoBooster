@@ -64,11 +64,11 @@ public class ParcelPacker extends Extension {
                 .addModifiers(Modifier.PUBLIC)
                 .addParameter(Parcel.class, "in");
         for(AnnotatedClass.Member member : annotatedClass.members) {
-            TypeKind fieldKind = member.element.asType().getKind();
+            TypeKind fieldKind = member.type.getKind();
             String suffix = "";
             if(fieldKind == TypeKind.ARRAY) {
                 suffix = "Array";
-                fieldKind = ((ArrayType)member.type).getComponentType().getKind();
+                fieldKind = ((ArrayType) member.type).getComponentType().getKind();
             }
             String args = "";
             String type = null;

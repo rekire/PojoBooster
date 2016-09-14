@@ -4,7 +4,6 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import java.util.Locale;
 
 /**
  * Created on 30.07.2016.
@@ -13,5 +12,6 @@ import java.util.Locale;
 @Target(ElementType.FIELD)
 public @interface Formatter {
     String value();
+
     String locale() default "";
 }
