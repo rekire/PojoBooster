@@ -30,10 +30,10 @@ public class AnnotatedClass {
     public final ClassName sourceType;
     public final List<Member> members;
     public final HashSet<TypeName> interfaces;
-    public final TypeName superType;
+    public final List<AnnotatedClass> superType;
 
     // package local to avoid that "external" people initialize this class
-    AnnotatedClass(List<Class<?>> extensions, ClassName targetType, ClassName sourceType, List<Element> fields, List<Element> methods) {
+    AnnotatedClass(List<Class<?>> extensions, ClassName targetType, ClassName sourceType, List<Element> fields, List<Element> methods, List<Element> constructors) {
         this.extensions = (List<Class<? extends Extension>>)(List)extensions;
         this.targetType = targetType;
         this.sourceType = sourceType;

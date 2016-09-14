@@ -3,7 +3,6 @@ package eu.rekisoft.java.pojotoolkit;
 import android.annotation.TargetApi;
 
 import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
@@ -16,7 +15,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -41,10 +39,8 @@ import javax.lang.model.type.ExecutableType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
-import javax.tools.DiagnosticCollector;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
-import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 
 import eu.rekisoft.java.pojobooster.Enhance;
@@ -225,8 +221,11 @@ public class Preprocessor extends AbstractProcessor {
             generated.addSuperinterface(anInterface);
         }
         if(createStub) {
-            generated.addModifiers(Modifier.ABSTRACT)
-                    .addStaticBlock(CodeBlock.of("throw new RuntimeException(\"This stub must not been compiled. This is a bug!\");\n"));
+            generated.addModifiers(Modifier.ABSTRACT);
+            generated.addMethod(
+                    MethodSpec.constructorBuilder()
+                    .addStatement("throw new $T(\"This stub must not been compiled. This is a bug!\")", ClassName.get(UnsupportedOperationException.class))
+                    .build());
         } else {
             for(FieldSpec member : members) {
                 generated.addField(member);
@@ -296,6 +295,7 @@ public class Preprocessor extends AbstractProcessor {
         }
         String packageName = type.getQualifiedName().toString();
         packageName = packageName.substring(0, packageName.indexOf(type.getSimpleName().toString()));
-        return new AnnotatedClass(extensions, ClassName.bestGuess(packageName + targetName), ClassName.bestGuess(type.toString()), fields, methods);
+
+        return new AnnotatedClass(extensions, ClassName.bestGuess(packageName + targetName), ClassName.bestGuess(type.toString()), fields, methods, constructors);
     }
 }
