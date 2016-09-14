@@ -57,8 +57,8 @@ class PojoBoosterPlugin implements Plugin<Project> {
             group = "Code generation"
             description = "Generated stubs which will been replaced by $classTaskName."
             // TODO enable when stable
-            //inputs.file androidExtension.sourceSets.main.java.srcDirs
-            //outputs.dir 'build/generated/source/pojo-stubs/' + variant.name
+            inputs.file project.sourceSets.main.java.srcDirs
+            outputs.dir 'build/generated/source/pojo-stubs'
             doLast {
                 runPreprocessor(true, path, logger, null, project.sourceSets.main.java.srcDirs, project)
             }
@@ -67,8 +67,8 @@ class PojoBoosterPlugin implements Plugin<Project> {
             group = "Code generation"
             description = "Generated classes for the java project."
             // TODO enable when stable
-            //inputs.file 'build/generated/source/pojo-stubs/' + variant.name
-            //outputs.dir 'build/generated/source/pojo/' + variant.name
+            inputs.file 'build/generated/source/pojo-stubs'
+            outputs.dir 'build/generated/source/pojo/'
             doLast {
                 runPreprocessor(false, path, logger, null, project.sourceSets.main.java.srcDirs, project)
             }
@@ -106,8 +106,8 @@ class PojoBoosterPlugin implements Plugin<Project> {
                 group = "Code generation"
                 description = "Generated stubs for the ${variant.name} variant which will been replaced by $classTaskName."
                 // TODO enable when stable
-                //inputs.file androidExtension.sourceSets.main.java.srcDirs
-                //outputs.dir 'build/generated/source/pojo-stubs/' + variant.name
+                inputs.file androidExtension.sourceSets.main.java.srcDirs
+                outputs.dir 'build/generated/source/pojo-stubs/' + variant.name
                 doLast {
                     runPreprocessor(true, path, logger, variant.name, androidExtension.sourceSets.main.java.srcDirs, project)
                 }
@@ -116,8 +116,8 @@ class PojoBoosterPlugin implements Plugin<Project> {
                 group = "Code generation"
                 description = "Generated classes for the ${variant.name} variant."
                 // TODO enable when stable
-                //inputs.file 'build/generated/source/pojo-stubs/' + variant.name
-                //outputs.dir 'build/generated/source/pojo/' + variant.name
+                inputs.file 'build/generated/source/pojo-stubs/' + variant.name
+                outputs.dir 'build/generated/source/pojo/' + variant.name
                 doLast {
                     runPreprocessor(false, path, logger, variant.name, androidExtension.sourceSets.main.java.srcDirs, project)
                 }
