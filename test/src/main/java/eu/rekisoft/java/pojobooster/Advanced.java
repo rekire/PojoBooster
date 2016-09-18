@@ -8,7 +8,7 @@ import java.util.UUID;
 @Enhance(extensions = {ParcelPacker.class}, name = "AdvancedExample")
 abstract class Advanced {
     @Field
-    BasicExample genParcable;
+    BasicExample genParcelable;
     @Field
     UUID serId;
 }

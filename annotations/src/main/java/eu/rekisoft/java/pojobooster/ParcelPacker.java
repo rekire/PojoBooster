@@ -129,8 +129,11 @@ public class ParcelPacker extends Extension {
                 type = "Byte";
                 break;
             case ERROR:
-                // TODO check if the we generate this class
-                System.out.println("Error with " + member.typeName);
+                // The error case is not important when we create the stubs so just block the warning.
+                if(!isCreatingStub()) {
+                    // TODO check for log level warning
+                    System.out.println("Error with " + member.typeName);
+                }
             case DECLARED:
                 //System.out.println("Processing " + member.element.asType() + " (" + member.element.asType().getClass() + ")");
 

@@ -1,6 +1,10 @@
 apply plugin:'java'
 apply plugin: 'eu.rekisoft.pojobooster'
 
+pojobooster {
+    outputDirName = 'src/generated'
+}
+
 //noinspection GroovyAssignabilityCheck
 jar {
     manifest {
