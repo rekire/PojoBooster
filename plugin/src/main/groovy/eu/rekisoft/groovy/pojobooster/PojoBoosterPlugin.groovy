@@ -15,16 +15,11 @@ class PojoBoosterPlugin implements Plugin<Project> {
         project.configurations.create 'pojobooster'
         project.extensions.create 'pojobooster', PojoBoosterPluginExtension
 
-        project.dependencies.
-                add("compile", project.getDependencies().create("eu.rekisoft.pojobooster:Annotations:$project.libVersion"))
-        project.dependencies.
-                add("compile", project.getDependencies().create("com.android.support:support-annotations:24.1.0"))
-        project.dependencies.
-                add("pojobooster", project.getDependencies().create("eu.rekisoft.pojobooster:Preprocessor:$project.libVersion"))
-        project.dependencies.
-                add("pojobooster", project.getDependencies().create("com.squareup:javapoet:1.7.0"))
-        project.dependencies.
-                add("pojobooster", project.getDependencies().create("org.robolectric:android-all:6.0.0_r1-robolectric-0"))
+        project.dependencies.add("compile", project.dependencies.create("eu.rekisoft.pojobooster:Annotations:$project.libVersion"))
+        project.dependencies.add("compile", project.dependencies.create("com.android.support:support-annotations:24.1.0"))
+        project.dependencies.add("pojobooster", project.dependencies.create("eu.rekisoft.pojobooster:Preprocessor:$project.libVersion"))
+        project.dependencies.add("pojobooster", project.dependencies.create("com.squareup:javapoet:1.7.0"))
+        project.dependencies.add("pojobooster", project.dependencies.create("org.robolectric:android-all:6.0.0_r1-robolectric-0"))
 
         project.afterEvaluate {
             if(project.plugins.hasPlugin('java')) {
