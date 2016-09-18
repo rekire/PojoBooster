@@ -45,8 +45,8 @@ class PojoBoosterPlugin implements Plugin<Project> {
         for(String include : project.sourceSets.main.java.includes) {
             includes.add(include)
         }
+
         project.sourceSets.main.java.setIncludes(Arrays.asList(getOutputDir(project, null).path + File.separator + "**.*"))
-        //println "includes: " + project.sourceSets.main.getJava().getIncludes()
 
         String path = project.configurations.pojobooster.asPath
         def stubTaskName = "generatePojoBoosterStubs"
@@ -72,8 +72,8 @@ class PojoBoosterPlugin implements Plugin<Project> {
         if(!project.pojobooster.outputDirName.startsWith('build/') ||
                 !project.pojobooster.stubDirName.startsWith('build/')) {
             project.task("deleteGeneratedCode") {
-                //group = "Code generation"
-                //description = "Generated classes for the ${variant.name} variant."
+                group = "Build"
+                description = "Delete the generated classes."
                 doLast {
                     delete getOutputDir(project, null)
                     delete getStubDir(project, null)
@@ -131,8 +131,8 @@ class PojoBoosterPlugin implements Plugin<Project> {
             if(!project.pojobooster.outputDirName.startsWith('build/') ||
                     !project.pojobooster.stubDirName.startsWith('build/')) {
                 project.task("deleteGeneratedCode") {
-                    //group = "Code generation"
-                    //description = "Generated classes for the ${variant.name} variant."
+                    group = "Build"
+                    description = "Delete the generated classes."
                     doLast {
                         delete getOutputDir(project, variant.name)
                         delete getStubDir(project, variant.name)
@@ -222,9 +222,8 @@ class PojoBoosterPlugin implements Plugin<Project> {
         }
 
         // set compiler's classpath to be same as the runtime's
-        List<String> optionList = Arrays.asList("-classpath", classPath, "-Astep=" + step,
-                "-Atarget=" + target.toString(), "-Aloglevel=" + logLevel.name(), "-Avariant=" + variantName,
-                "-d", output.toString());
+        List<String> optionList = Arrays.asList("-classpath", classPath, "-Astep=" + step, "-Atarget=" + target.toString(),
+                "-Aloglevel=" + logLevel.name(), "-Avariant=" + variantName, "-d", output.toString());
 
         final JavaCompiler.CompilationTask task = compiler.getTask(null, manager, diagnostics,
                 optionList, null, sources);
