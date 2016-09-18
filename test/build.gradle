@@ -42,4 +42,5 @@ task testPrecompiler {
 //noinspection GroovyAssignabilityCheck
 dependencies {
     compile project(':annotations')
+    testCompile 'junit:junit:4.12'
 }

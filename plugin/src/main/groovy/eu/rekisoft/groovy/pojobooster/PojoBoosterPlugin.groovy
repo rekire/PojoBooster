@@ -45,7 +45,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
         for(String include : project.sourceSets.main.java.includes) {
             includes.add(include)
         }
-        project.sourceSets.main.java.setIncludes(Arrays.asList("build/generated/source/pojo/**.*"))
+        project.sourceSets.main.java.setIncludes(Arrays.asList(getOutputDir(project, null).path + File.separator + "**.*"))
         //println "includes: " + project.sourceSets.main.getJava().getIncludes()
 
         String path = project.configurations.pojobooster.asPath
@@ -54,8 +54,8 @@ class PojoBoosterPlugin implements Plugin<Project> {
         project.task(stubTaskName) {
             group = "Code generation"
             description = "Generated stubs which will been replaced by $classTaskName."
-            //inputs.file project.sourceSets.main.java.srcDirs
-            //outputs.dir 'build/generated/source/pojo-stubs'
+            inputs.file project.sourceSets.main.java.srcDirs
+            outputs.dir getStubDir(project, null)
             doLast {
                 runPreprocessor(true, path, logger, null, project.sourceSets.main.java.srcDirs, project)
             }
@@ -63,8 +63,8 @@ class PojoBoosterPlugin implements Plugin<Project> {
         project.task(classTaskName) {
             group = "Code generation"
             description = "Generated classes for the java project."
-            //inputs.file 'build/generated/source/pojo-stubs'
-            //outputs.dir 'build/generated/source/pojo/'
+            inputs.file getStubDir(project, null)
+            outputs.dir getOutputDir(project, null)
             doLast {
                 runPreprocessor(false, path, logger, null, project.sourceSets.main.java.srcDirs, project)
             }
@@ -74,8 +74,6 @@ class PojoBoosterPlugin implements Plugin<Project> {
             project.task("deleteGeneratedCode") {
                 //group = "Code generation"
                 //description = "Generated classes for the ${variant.name} variant."
-                //inputs.file 'build/generated/source/pojo-stubs/' + variant.name
-                //outputs.dir 'build/generated/source/pojo/' + variant.name
                 doLast {
                     delete getOutputDir(project, null)
                     delete getStubDir(project, null)
@@ -115,8 +113,8 @@ class PojoBoosterPlugin implements Plugin<Project> {
             project.task(stubTaskName) {
                 group = "Code generation"
                 description = "Generated stubs for the ${variant.name} variant which will been replaced by $classTaskName."
-                //inputs.file androidExtension.sourceSets.main.java.srcDirs
-                //outputs.dir 'build/generated/source/pojo-stubs/' + variant.name
+                inputs.file androidExtension.sourceSets.main.java.srcDirs
+                outputs.dir getStubDir(project, variant.name)
                 doLast {
                     runPreprocessor(true, path, logger, variant.name, androidExtension.sourceSets.main.java.srcDirs, project)
                 }
@@ -124,8 +122,8 @@ class PojoBoosterPlugin implements Plugin<Project> {
             project.task(classTaskName) {
                 group = "Code generation"
                 description = "Generated classes for the ${variant.name} variant."
-                //inputs.file 'build/generated/source/pojo-stubs/' + variant.name
-                //outputs.dir 'build/generated/source/pojo/' + variant.name
+                inputs.file getStubDir(project, variant.name)
+                outputs.dir getOutputDir(project, variant.name)
                 doLast {
                     runPreprocessor(false, path, logger, variant.name, androidExtension.sourceSets.main.java.srcDirs, project)
                 }
@@ -135,8 +133,6 @@ class PojoBoosterPlugin implements Plugin<Project> {
                 project.task("deleteGeneratedCode") {
                     //group = "Code generation"
                     //description = "Generated classes for the ${variant.name} variant."
-                    //inputs.file 'build/generated/source/pojo-stubs/' + variant.name
-                    //outputs.dir 'build/generated/source/pojo/' + variant.name
                     doLast {
                         delete getOutputDir(project, variant.name)
                         delete getStubDir(project, variant.name)
@@ -192,7 +188,8 @@ class PojoBoosterPlugin implements Plugin<Project> {
         project.file outputDir
     }
 
-    private static void runPreprocessor(boolean justStubs, String classPath, Logger logger, String variantName, Set<File> sourceDirs, Project project) {
+    private static void runPreprocessor(boolean justStubs, String classPath, Logger logger, String variantName,
+                                        Set<File> sourceDirs, Project project) {
         logger.debug "Generating code for $variantName with stubs = $justStubs"
 
         List<String> sourceFiles = finder(sourceDirs)
