@@ -1,6 +1,7 @@
 package eu.rekisoft.java.pojotoolkit;
 
 import android.annotation.TargetApi;
+import android.support.annotation.VisibleForTesting;
 
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
@@ -39,9 +40,7 @@ import javax.lang.model.type.ExecutableType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
-import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
-import javax.tools.ToolProvider;
 
 import eu.rekisoft.java.pojobooster.Enhance;
 import eu.rekisoft.java.pojobooster.FactoryOf;
@@ -73,8 +72,6 @@ public class Preprocessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        //System.out.println("DEBUG: " + processingEnv.getOptions());
-        //System.out.println("Step: " + processingEnv.getOptions().get("step"));
         if(sourcePath == null && targetPath == null) {
             try {
                 JavaFileObject generationForPath = processingEnv.getFiler().createSourceFile("Killme" + System.currentTimeMillis());
@@ -117,7 +114,7 @@ public class Preprocessor extends AbstractProcessor {
                 String annotationClass = annotationMirror.getAnnotationType().asElement().asType().toString();
                 // select our annotation
                 if(Enhance.class.getName().equals(annotationClass)) {
-                    writeFile(collectInfo(annotationMirror, (TypeElement) elem, fields, methods, constructors), constructors, roundEnv);
+                    assembleFile(collectInfo(annotationMirror, (TypeElement) elem, fields, methods, constructors), constructors, roundEnv);
                 }
             }
         }
@@ -154,7 +151,7 @@ public class Preprocessor extends AbstractProcessor {
         return true; // no further processing of this annotation type
     }
 
-    private void writeFile(AnnotatedClass annotatedClass, List<Element> constructors, RoundEnvironment environment) {
+    private void assembleFile(AnnotatedClass annotatedClass, List<Element> constructors, RoundEnvironment environment) {
         HashSet<TypeName> interfaces = new HashSet<>();
         List<MethodSpec> methods = new ArrayList<>();
         List<FieldSpec> members = new ArrayList<>();
@@ -193,7 +190,8 @@ public class Preprocessor extends AbstractProcessor {
 
         for(Class<? extends Extension> extension : annotatedClass.extensions) {
             try {
-                Extension impl = extension.getDeclaredConstructor(ExtensionSettings.class).newInstance(new ExtensionSettings(annotatedClass, environment, processingEnv, logLevel, variantName, createStub));
+                Extension impl = extension.getDeclaredConstructor(ExtensionSettings.class).newInstance(new ExtensionSettings(annotatedClass,
+                        environment, processingEnv, logLevel, variantName, createStub));
                 extensions[i++] = impl;
                 annotatedClass.interfaces.addAll(impl.getAttentionalInterfaces());
             } catch(ReflectiveOperationException e) {
@@ -218,7 +216,8 @@ public class Preprocessor extends AbstractProcessor {
             generated.addModifiers(Modifier.ABSTRACT);
             generated.addMethod(
                     MethodSpec.constructorBuilder()
-                            .addStatement("throw new $T(\"This stub must not been compiled. This is a bug!\")", ClassName.get(UnsupportedOperationException.class))
+                            .addStatement("throw new $T(\"This stub must not been compiled. This is a bug!\")",
+                                    ClassName.get(UnsupportedOperationException.class))
                             .build());
         } else {
             for(FieldSpec member : members) {
@@ -231,21 +230,26 @@ public class Preprocessor extends AbstractProcessor {
 
         JavaFile javaFile = JavaFile.builder(annotatedClass.targetType.packageName(), generated.build()).indent("    ").build();
 
+        String module, dir;
+        if(targetPath != null) {
+            dir = targetPath + File.separator + annotatedClass.targetType.packageName().replace(".", File.separator);
+        } else if(sourcePath.indexOf("/build/classes/") > 0) {
+            module = sourcePath.substring(0, sourcePath.indexOf("/build/classes/"));
+            dir = module + "/src/generated/" + annotatedClass.targetType.packageName().replace(".", File.separator);
+        } else {
+            module = sourcePath.substring(0, sourcePath.indexOf("/build/"));
+            dir = module + "/generated/source/pojo/" + annotatedClass.targetType.packageName().replace(".", File.separator);
+        }
+
+        writeFile(dir, annotatedClass.targetType, javaFile);
+    }
+
+    @VisibleForTesting
+    protected void writeFile(String dir, ClassName targetType, JavaFile fileContent) {
         try {
-            String module, dir;
-            if(targetPath != null) {
-                dir = targetPath + File.separator + annotatedClass.targetType.packageName().replace(".", File.separator);
-            } else if(sourcePath.indexOf("/build/classes/") > 0) {
-                module = sourcePath.substring(0, sourcePath.indexOf("/build/classes/"));
-                dir = module + "/src/generated/" + annotatedClass.targetType.packageName().replace(".", File.separator);
-            } else {
-                // TODO the debug string should not been hardcoded
-                module = sourcePath.substring(0, sourcePath.indexOf("/build/"));
-                dir = module + "/generated/source/pojo/debug/" + annotatedClass.targetType.packageName().replace(".", File.separator);
-            }
             File directory = new File(dir);
             directory.mkdirs();
-            String targetFile = dir + File.separator + annotatedClass.targetType.simpleName() + ".java";
+            String targetFile = dir + File.separator + targetType.simpleName() + ".java";
             if("DEBUG".equals(logLevel)) {
                 System.out.println("write to: " + targetFile);
             }
@@ -259,7 +263,7 @@ public class Preprocessor extends AbstractProcessor {
             }
             bw.newLine();
             bw.newLine();
-            bw.append(javaFile.toString().trim());
+            bw.append(fileContent.toString().trim());
             bw.flush();
             bw.close();
         } catch(IOException e) {
@@ -270,7 +274,8 @@ public class Preprocessor extends AbstractProcessor {
     }
 
     @SuppressWarnings("unchecked")
-    private AnnotatedClass collectInfo(AnnotationMirror annotationMirror, TypeElement type, List<Element> fields, List<Element> methods, List<Element> constructors) {
+    private AnnotatedClass collectInfo(AnnotationMirror annotationMirror, TypeElement type, List<Element> fields, List<Element> methods,
+                                       List<Element> constructors) {
         List<Class<?>> extensions = new ArrayList<>();
         String targetName = type.getSimpleName().toString();
         for(Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : annotationMirror.getElementValues().entrySet()) {
@@ -290,6 +295,7 @@ public class Preprocessor extends AbstractProcessor {
         String packageName = type.getQualifiedName().toString();
         packageName = packageName.substring(0, packageName.indexOf(type.getSimpleName().toString()));
 
-        return new AnnotatedClass(extensions, ClassName.bestGuess(packageName + targetName), ClassName.bestGuess(type.toString()), fields, methods, constructors);
+        return new AnnotatedClass(extensions, ClassName.bestGuess(packageName + targetName), ClassName.bestGuess(type.toString()),
+                fields, methods, constructors);
     }
 }

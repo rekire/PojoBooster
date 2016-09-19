@@ -1,10 +1,14 @@
-apply plugin:'java'
+apply plugin: 'java'
 apply plugin: 'maven-publish'
 
 dependencies {
     compile project(':annotations')
-    //compile "eu.rekisoft.pojobooster:Annotations:$project.libVersion" //project(':annotations')
     compile 'com.squareup:javapoet:1.7.0'
+    testCompile 'junit:junit:4.12'
+    testCompile 'org.powermock:powermock-api-mockito:1.6.5'
+    testCompile 'org.powermock:powermock-module-junit4-rule-agent:1.6.5'
+    testCompile 'org.powermock:powermock-module-junit4-rule:1.6.5'
+    testCompile 'org.powermock:powermock-module-junit4:1.6.5'
 }
 
 task sourceJar(type: Jar) {
