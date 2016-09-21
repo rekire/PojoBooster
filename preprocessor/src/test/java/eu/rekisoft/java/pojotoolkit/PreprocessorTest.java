@@ -10,6 +10,7 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.io.BufferedWriter;
+import java.io.Serializable;
 import java.io.Writer;
 import java.net.URI;
 import java.util.Collections;
@@ -24,6 +25,7 @@ import javax.lang.model.util.Elements;
 import javax.tools.JavaFileObject;
 
 import eu.rekisoft.java.pojobooster.Enhance;
+import eu.rekisoft.java.pojobooster.Serializer;
 import eu.rekisoft.java.pojotoolkit.testing.AnnotationMirrorMock;
 import eu.rekisoft.java.pojotoolkit.testing.ElementMock;
 import eu.rekisoft.java.pojotoolkit.testing.ProcessingEnvironmentMock;
@@ -73,15 +75,27 @@ public class PreprocessorTest {
         when(jfo.toUri()).thenReturn(new URI("/foo/bar"));
         sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
+
+        // TODO verify the correct path
     }
 
     @Test
-    public void blah() {
+    public void basicEnhanceAnnotationProcessing() {
         processingEnvironment.options.put("target", "foo");
         sut.init(processingEnvironment);
         roundEnvironment.annotatedElements.put(Enhance.class.getName(),
                 createSet(new ElementMock("some.source.Class", ElementKind.CLASS, new AnnotationMirrorMock(Enhance.class,
-                        "name", "TargetClass", "extensions", new Extension[0]))));
+                        "name", "TargetClass", "extensions", new Class[0]))));
+        sut.process(null, roundEnvironment);
+    }
+
+    @Test
+    public void checkExtensionProcessing() {
+        processingEnvironment.options.put("target", "foo");
+        sut.init(processingEnvironment);
+        roundEnvironment.annotatedElements.put(Enhance.class.getName(),
+                createSet(new ElementMock("some.source.Class", ElementKind.CLASS, new AnnotationMirrorMock(Enhance.class,
+                        "name", "TargetClass", "extensions", new Class[] {Serializer.class}))));
         sut.process(null, roundEnvironment);
     }
 

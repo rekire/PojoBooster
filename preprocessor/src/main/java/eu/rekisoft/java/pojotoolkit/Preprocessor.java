@@ -93,7 +93,7 @@ public class Preprocessor extends AbstractProcessor {
             if(elem.getKind() != ElementKind.CLASS) {
                 throw new IllegalArgumentException("No class was annotated");
             }
-            List<? extends Element> members = processingEnv.getElementUtils().getAllMembers((TypeElement) elem);
+            List<? extends Element> members = processingEnv.getElementUtils().getAllMembers((TypeElement)elem);
             // look at all methods and fields
             List<Element> fields = new ArrayList<>();
             List<Element> methods = new ArrayList<>();
@@ -114,13 +114,13 @@ public class Preprocessor extends AbstractProcessor {
                 String annotationClass = annotationMirror.getAnnotationType().asElement().asType().toString();
                 // select our annotation
                 if(Enhance.class.getName().equals(annotationClass)) {
-                    assembleFile(collectInfo(annotationMirror, (TypeElement) elem, fields, methods, constructors), constructors, roundEnv);
+                    assembleFile(collectInfo(annotationMirror, (TypeElement)elem, fields, methods, constructors), constructors, roundEnv);
                 }
             }
         }
 
         for(Element elem : roundEnv.getElementsAnnotatedWith(JsonDecorator.class)) {
-            Method method = Method.from((ExecutableElement) elem);
+            Method method = Method.from((ExecutableElement)elem);
             if(!method.matchesTypes(String.class, StringBuilder.class)) {
                 processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "Yey " + elem + " this is fine!");
             } else {
@@ -167,7 +167,7 @@ public class Preprocessor extends AbstractProcessor {
             for(Element element : constructors) {
                 MethodSpec.Builder constructor = MethodSpec.constructorBuilder();
                 StringBuilder sb = new StringBuilder("super(");
-                List<? extends TypeMirror> argTypes = ((ExecutableType) element.asType()).getParameterTypes();
+                List<? extends TypeMirror> argTypes = ((ExecutableType)element.asType()).getParameterTypes();
                 for(int i = 0; i < argTypes.size(); i++) {
                     // TODO find some trick to read out the real name
                     String argName = "arg" + i;
@@ -245,7 +245,7 @@ public class Preprocessor extends AbstractProcessor {
     }
 
     @VisibleForTesting
-    protected void writeFile(String dir, ClassName targetType, JavaFile fileContent) {
+    void writeFile(String dir, ClassName targetType, JavaFile fileContent) {
         try {
             File directory = new File(dir);
             directory.mkdirs();
@@ -279,17 +279,19 @@ public class Preprocessor extends AbstractProcessor {
         List<Class<?>> extensions = new ArrayList<>();
         String targetName = type.getSimpleName().toString();
         for(Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : annotationMirror.getElementValues().entrySet()) {
-            if("extensions".equals(entry.getKey().getSimpleName().toString())) {
-                for(AnnotationValue extension : (List<AnnotationValue>) entry.getValue().getValue()) {
-                    DeclaredType extensionType = (DeclaredType) extension.getValue();
+            AnnotationValue annotationValue = entry.getValue();
+            ExecutableElement annotationKey = entry.getKey();
+            if("extensions".equals(annotationKey.getSimpleName().toString())) {
+                for(AnnotationValue extension : (List<AnnotationValue>)annotationValue.getValue()) {
+                    DeclaredType extensionType = (DeclaredType)extension.getValue();
                     try {
                         extensions.add(Class.forName(extensionType.toString()));
                     } catch(ReflectiveOperationException e) {
                         e.printStackTrace();
                     }
                 }
-            } else if("name".equals(entry.getKey().getSimpleName().toString())) {
-                targetName = entry.getValue().getValue().toString();
+            } else if("name".equals(annotationKey.getSimpleName().toString())) {
+                targetName = annotationValue.getValue().toString();
             }
         }
         String packageName = type.getQualifiedName().toString();

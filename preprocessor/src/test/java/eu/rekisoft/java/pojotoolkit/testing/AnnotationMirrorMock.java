@@ -64,12 +64,14 @@ public class AnnotationMirrorMock implements AnnotationMirror {
             when(keyName.toString()).thenReturn(annotationKey);
             AnnotationValue value = mock(AnnotationValue.class);
             if(annotationValue.getClass().isArray()) {
-                List<AnnotationValue> list = new ArrayList<>(Array.getLength(annotationValue));
-                for(int j = 0; j < list.size(); j++) {
+                int size = Array.getLength(annotationValue);
+                List<AnnotationValue> list = new ArrayList<>(size);
+                for(int j = 0; j < size; j++) {
+                    AnnotationValue item = mock(AnnotationValue.class);
                     DeclaredType declaredType = mock(DeclaredType.class);
-                    when(value.getValue()).thenReturn(declaredType);
+                    when(item.getValue()).thenReturn(declaredType);
                     when(declaredType.toString()).thenReturn(Array.get(annotationValue, j).toString());
-                    list.add(value);
+                    list.add(item);
                 }
                 when(value.getValue()).thenReturn(list);
             } else {

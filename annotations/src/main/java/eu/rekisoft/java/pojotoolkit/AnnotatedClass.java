@@ -44,6 +44,17 @@ public class AnnotatedClass {
         this.superType = null;
     }
 
+    AnnotatedClass(ClassName targetType, ClassName sourceType, List<Member> fields, List<Element> methods, List<Element> constructors, List<Class<? extends Extension>> extensions) {
+        this.extensions = extensions;
+        this.targetType = targetType;
+        this.sourceType = sourceType;
+        this.members = fields;
+        // TODO
+        // this.methods = methods; // this should be abstracted too
+        this.interfaces = new HashSet<>();
+        this.superType = null;
+    }
+
     private List<Member> convertFields(List<Element> fields) {
         List<Member> list = new ArrayList<>(fields.size());
         for(Element field : fields) {
@@ -54,17 +65,22 @@ public class AnnotatedClass {
 
     public static class Member {
         private final Map<String, Map<? extends ExecutableElement, ? extends AnnotationValue>> annotations;
-        @Deprecated
-        public final Element element;
         public final TypeMirror type;
         public final String typeName;
         public final String name;
+
+        public Member(Map<String, Map<? extends ExecutableElement, ? extends AnnotationValue>> annotations,
+                      TypeMirror type, String typeName, String name) {
+            this.annotations = annotations;
+            this.type = type;
+            this.typeName = typeName;
+            this.name = name;
+        }
 
         public Member(Element element) {
             this.type = element.asType();
             this.typeName = type.toString();
             this.name = element.toString();
-            this.element = element;
 
             Map<String, Map<? extends ExecutableElement, ? extends AnnotationValue>> annotations = new HashMap<>();
             for(AnnotationMirror annotationMirror : element.getAnnotationMirrors()) {

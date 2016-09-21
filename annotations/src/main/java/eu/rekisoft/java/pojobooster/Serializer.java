@@ -19,6 +19,7 @@ import eu.rekisoft.java.pojotoolkit.Extension;
 import eu.rekisoft.java.pojotoolkit.ExtensionSettings;
 
 /**
+ * Extension to add the Serializable attribute including the serialVersionUID field.
  * Created on 17.07.2016.
  *
  * @author René Kilczan
@@ -34,7 +35,7 @@ public class Serializer extends Extension {
             //String message = "Field annotation found in " + elem.getSimpleName()
             //        + " with " + elem.getSimpleName() + " -> " + field.value();
             //System.out.println(elem.getEnclosingElement().asType() + " - " + elem.asType() + " " + elem.getSimpleName());
-            hashInfo += "\n" + member.type + " " + member.typeName;
+            hashInfo += "\n" + member.typeName + " " + member.name;
             //classes.get(typeElement).add(elem);
             //String message = "Field annotation found in " + elem.getSimpleName()
             //        + " with " + elem.getSimpleName() + " -> " + element.value();

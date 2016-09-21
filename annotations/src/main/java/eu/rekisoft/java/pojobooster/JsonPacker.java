@@ -69,7 +69,8 @@ public class JsonPacker extends Extension {
     private void addElementToJson(MethodSpec.Builder method, AnnotatedClass.Member member) {
         String format = (String) member.getAnnotatedProperty(Formatter.class, "value");
         LocaleHelper locale = LocaleHelper.from(member);
-        boolean needsNullCheck = /*!isInstanceOf(member, Number.class) && !isInstanceOf(member, Boolean.class) &&*/ !member.type.getKind().isPrimitive() && member.type.getKind() != TypeKind.ARRAY;
+        boolean needsNullCheck = /*!isInstanceOf(member, Number.class) && !isInstanceOf(member, Boolean.class) &&*/
+                !member.type.getKind().isPrimitive() && member.type.getKind() != TypeKind.ARRAY;
         if(needsNullCheck) {
             method.beginControlFlow("if($L == null)", member.name)
                     .addStatement("sb.append(\"null\")")
