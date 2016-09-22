@@ -10,11 +10,13 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/annotations" />
-            <option value="$PROJECT_DIR$/app" />
-            <option value="$PROJECT_DIR$/examplelibrary" />
+            <option value="$PROJECT_DIR$/examples" />
+            <option value="$PROJECT_DIR$/examples/app" />
+            <option value="$PROJECT_DIR$/examples/java" />
+            <option value="$PROJECT_DIR$/examples/library" />
             <option value="$PROJECT_DIR$/plugin" />
             <option value="$PROJECT_DIR$/preprocessor" />
-            <option value="$PROJECT_DIR$/test" />
+            <option value="$PROJECT_DIR$/unittests" />
           </set>
         </option>
         <option name="resolveModulePerSourceSet" value="false" />

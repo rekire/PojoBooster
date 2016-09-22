@@ -7,7 +7,9 @@ import java.lang.annotation.Target;
 import java.security.cert.Extension;
 
 /**
- * Created by rene on 26.05.2016.
+ * Created on 26.05.2016.
+ *
+ * @author René Kilczan
  */
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.TYPE)

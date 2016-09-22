@@ -1,0 +1,22 @@
+apply plugin:'java'
+apply plugin: 'eu.rekisoft.pojobooster'
+
+pojobooster {
+    outputDirName = 'src/generated'
+}
+
+//noinspection GroovyAssignabilityCheck
+jar {
+    manifest {
+        attributes 'Manifest-Version': '1.0',
+                'Main-Class': 'eu.rekisoft.java.pojobooster.Test'
+    }
+}
+
+//noinspection GroovyAssignabilityCheck
+dependencies {
+    compile project(':annotations')
+}
+
+sourceCompatibility = "1.7"
+targetCompatibility = "1.7"

@@ -7,6 +7,7 @@ import java.util.List;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.RoundEnvironment;
+import javax.lang.model.element.Element;
 
 /**
  * Helper class to create the ExtensionSettings for unit tests.
@@ -21,8 +22,8 @@ public class SettingsFactory {
                ClassName.get("com.example", "Source"),
                ClassName.get("com.example", "Target"),
                members,
-               new ArrayList<>(0),
-               new ArrayList<>(0),
+               new ArrayList<Element>(0),
+               new ArrayList<Element>(0),
                null
        );
 

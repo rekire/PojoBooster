@@ -1,1 +1,1 @@
-include ':annotations', ':preprocessor', ':plugin', ':test', ':app', ':examplelibrary'
+include ':annotations', ':preprocessor', ':plugin', ':unittests', ':examples:java', ':examples:app', ':examples:library'

@@ -24,7 +24,9 @@ import eu.rekisoft.java.pojotoolkit.JsonWriter;
 import eu.rekisoft.java.pojotoolkit.LocaleHelper;
 
 /**
- * Created by René Kilczan on 19.07.16.
+ * Created on 19.07.16.
+ *
+ * @author René Kilczan
  */
 @SuppressLint("NewApi")
 public class JsonPacker extends Extension {

@@ -4,7 +4,6 @@ import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.TypeName;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import java.io.Serializable;
@@ -33,7 +32,7 @@ public class SerializerTest {
     public void verifyOutput() {
         // initialize
         List<AnnotatedClass.Member> members = new ArrayList<>(1);
-        members.add(new AnnotatedClass.Member(new HashMap<>(0), null, String.class.getName(), "string"));
+        members.add(new AnnotatedClass.Member(new HashMap<String, Map<? extends ExecutableElement, ? extends AnnotationValue>>(0), null, String.class.getName(), "string"));
         Serializer sut = new Serializer(SettingsFactory.create(members, null, null, "DEBUG", null, false));
 
         // verify

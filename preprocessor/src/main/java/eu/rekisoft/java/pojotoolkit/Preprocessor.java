@@ -50,7 +50,7 @@ import eu.rekisoft.java.pojobooster.JsonDecorator;
         "eu.rekisoft.java.pojobooster.Enhance",
         "eu.rekisoft.java.pojobooster.JsonDecorator",
         "eu.rekisoft.java.pojobooster.FactoryOf"})
-@SupportedSourceVersion(SourceVersion.RELEASE_8)
+@SupportedSourceVersion(SourceVersion.RELEASE_7)
 @TargetApi(24) // STFU
 @SupportedOptions({"step", "target", "loglevel", "variant"})
 public class Preprocessor extends AbstractProcessor {

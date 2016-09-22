@@ -1,0 +1,62 @@
+apply plugin:'java'
+
+//noinspection GroovyAssignabilityCheck
+jar {
+    manifest {
+        attributes 'Manifest-Version': '1.0',
+                'Main-Class': 'eu.rekisoft.java.pojobooster.Test'
+    }
+}
+
+task copyLibs(type: Copy) {
+    from configurations.compile
+    into 'build/libs'
+}
+/*
+sourceSets.main.java.srcDirs = [
+        '../preprocessor/src/main/java/',
+        '../annotations/src/main/java/',
+        '../plugin/src/main/groovy/',
+]
+*/
+sourceSets.test.java.srcDirs = [
+        '../annotations/src/test/java/',
+        '../plugin/src/test/groovy/',
+        '../preprocessor/src/test/java/'
+]
+
+// TODO catch the exception and help the user to find out what went wrong
+task testPrecompiler {
+    // Invoke jtreg
+    task jtreg(dependsOn:jar) << {
+        group = "Verification"
+        javaexec {
+            main="-jar";
+            args = [
+                    "libs/jtreg.jar",
+                    "-w:build/tmp",
+                    "-r:build/reports/jtreg",
+                    "."
+            ]
+            standardOutput = org.apache.commons.io.output.NullOutputStream.NULL_OUTPUT_STREAM
+        }
+    }
+    jtreg.dependsOn copyLibs
+    dependsOn jtreg
+    group = "Verification"
+}
+
+//noinspection GroovyAssignabilityCheck
+dependencies {
+    compile project(':annotations')
+    compile project(':plugin')
+    compile project(':preprocessor')
+    testCompile 'junit:junit:4.12'
+    testCompile 'org.powermock:powermock-api-mockito:1.6.5'
+    testCompile 'org.powermock:powermock-module-junit4-rule-agent:1.6.5'
+    testCompile 'org.powermock:powermock-module-junit4-rule:1.6.5'
+    testCompile 'org.powermock:powermock-module-junit4:1.6.5'
+}
+
+sourceCompatibility = "1.7"
+targetCompatibility = "1.7"
