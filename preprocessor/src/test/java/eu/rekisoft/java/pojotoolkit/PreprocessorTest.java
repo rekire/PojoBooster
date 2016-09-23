@@ -1,8 +1,5 @@
 package eu.rekisoft.java.pojotoolkit;
 
-import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.JavaFile;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -10,7 +7,7 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.io.BufferedWriter;
-import java.io.Serializable;
+import java.io.File;
 import java.io.Writer;
 import java.net.URI;
 import java.util.Collections;
@@ -21,7 +18,6 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import javax.lang.model.util.Elements;
 import javax.tools.JavaFileObject;
 
 import eu.rekisoft.java.pojobooster.Enhance;
@@ -35,6 +31,7 @@ import static org.mockito.Matchers.anyString;
 import static org.powermock.api.mockito.PowerMockito.mock;
 import static org.powermock.api.mockito.PowerMockito.spy;
 import static org.powermock.api.mockito.PowerMockito.when;
+import static org.powermock.api.mockito.PowerMockito.whenNew;
 
 /**
  * Created on 18.09.2016.
@@ -49,12 +46,12 @@ public class PreprocessorTest {
     private RoundEnvironmentMock roundEnvironment;
 
     @Before
-    public void setup() {
-        sut = new Preprocessor() {
-            @Override
-            protected void writeFile(String dir, ClassName targetType, JavaFile fileContent) {
-            }
-        };
+    public void setup() throws Exception {
+        sut = new Preprocessor();
+        BufferedWriter writer = mock(BufferedWriter.class);
+        whenNew(BufferedWriter.class).withAnyArguments().thenReturn(writer);
+        File file = mock(File.class);
+        whenNew(File.class).withAnyArguments().thenReturn(file);
         processingEnvironment = spy(new ProcessingEnvironmentMock());
         roundEnvironment = spy(new RoundEnvironmentMock());
     }
@@ -84,8 +81,8 @@ public class PreprocessorTest {
         processingEnvironment.options.put("target", "foo");
         sut.init(processingEnvironment);
         roundEnvironment.annotatedElements.put(Enhance.class.getName(),
-                createSet(new ElementMock("some.source.Class", ElementKind.CLASS, new AnnotationMirrorMock(Enhance.class,
-                        "name", "TargetClass", "extensions", new Class[0]))));
+                createSet(new ElementMock("some.source.Class", ElementKind.CLASS, TypeKind.DECLARED,
+                        new AnnotationMirrorMock(Enhance.class, "name", "TargetClass", "extensions", new Class[0]))));
         sut.process(null, roundEnvironment);
     }
 
@@ -94,8 +91,32 @@ public class PreprocessorTest {
         processingEnvironment.options.put("target", "foo");
         sut.init(processingEnvironment);
         roundEnvironment.annotatedElements.put(Enhance.class.getName(),
-                createSet(new ElementMock("some.source.Class", ElementKind.CLASS, new AnnotationMirrorMock(Enhance.class,
-                        "name", "TargetClass", "extensions", new Class[] {Serializer.class}))));
+                createSet(new ElementMock("some.source.Class", ElementKind.CLASS, TypeKind.DECLARED,
+                        new AnnotationMirrorMock(Enhance.class, "name", "TargetClass", "extensions", new Class[] {Serializer.class}))));
+        sut.process(null, roundEnvironment);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void crashForWrongAnnotationOnConstructor() {
+        processingEnvironment.options.put("target", "foo");
+        sut.init(processingEnvironment);
+        roundEnvironment.annotatedElements.put(Enhance.class.getName(),
+                createSet(new ElementMock("<init>", ElementKind.CONSTRUCTOR, TypeKind.EXECUTABLE)));
+        sut.process(null, roundEnvironment);
+    }
+
+    @Test
+    public void checkConstructorProcessing() {
+        processingEnvironment.options.put("target", "foo");
+        processingEnvironment.options.put("loglevel", "DEBUG");
+        sut.init(processingEnvironment);
+        Set<ElementMock> members = new HashSet<>(2);
+        members.add(new ElementMock("some.source.Class", ElementKind.CLASS, TypeKind.DECLARED,
+                new AnnotationMirrorMock(Enhance.class, "name", "TargetClass", "extensions", new Class[] {Serializer.class})));
+        roundEnvironment.annotatedElements.put(Enhance.class.getName(), members);
+        processingEnvironment.elements.members.clear();
+        processingEnvironment.elements.members.add(new ElementMock("<init>", ElementKind.CONSTRUCTOR, TypeKind.EXECUTABLE));
+        processingEnvironment.elements.members.add(new ElementMock("test", ElementKind.METHOD, TypeKind.EXECUTABLE));
         sut.process(null, roundEnvironment);
     }
 

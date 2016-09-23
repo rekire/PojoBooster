@@ -53,7 +53,7 @@ import eu.rekisoft.java.pojobooster.JsonDecorator;
 @SupportedSourceVersion(SourceVersion.RELEASE_7)
 @TargetApi(24) // STFU
 @SupportedOptions({"step", "target", "loglevel", "variant"})
-public class Preprocessor extends AbstractProcessor {
+public final class Preprocessor extends AbstractProcessor {
 
     private boolean createStub;
     private String sourcePath = null;
@@ -244,8 +244,7 @@ public class Preprocessor extends AbstractProcessor {
         writeFile(dir, annotatedClass.targetType, javaFile);
     }
 
-    @VisibleForTesting
-    void writeFile(String dir, ClassName targetType, JavaFile fileContent) {
+    private void writeFile(String dir, ClassName targetType, JavaFile fileContent) {
         try {
             File directory = new File(dir);
             directory.mkdirs();

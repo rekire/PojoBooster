@@ -8,10 +8,12 @@ import java.util.Map;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.AnnotationValue;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Name;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.TypeKind;
 import javax.lang.model.util.Elements;
 
 /**
@@ -20,6 +22,18 @@ import javax.lang.model.util.Elements;
  * @author René Kilczan
  */
 public class ElementUtils implements Elements {
+    public ArrayList<Element> members = new ArrayList<>();
+
+    public ElementUtils() {
+        members.add(new ElementMock("java.lang.String", ElementKind.FIELD, TypeKind.DECLARED));
+        members.add(new ElementMock("java.lang.String", ElementKind.METHOD, TypeKind.EXECUTABLE));
+    }
+
+    @Override
+    public List<? extends Element> getAllMembers(TypeElement type) {
+        return members;
+    }
+
     @Override
     public PackageElement getPackageElement(CharSequence name) {
         return null;
@@ -53,12 +67,6 @@ public class ElementUtils implements Elements {
     @Override
     public PackageElement getPackageOf(Element type) {
         return null;
-    }
-
-    @Override
-    public List<? extends Element> getAllMembers(TypeElement type) {
-        // TODO mock this
-        return new ArrayList<ElementMock>(0);
     }
 
     @Override

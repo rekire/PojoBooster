@@ -2,7 +2,9 @@ package eu.rekisoft.java.pojotoolkit.testing;
 
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -15,6 +17,8 @@ import javax.lang.model.element.Name;
 import javax.lang.model.element.NestingKind;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
+import javax.lang.model.type.ExecutableType;
+import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
 import static org.mockito.Mockito.when;
@@ -28,17 +32,34 @@ import static org.powermock.api.mockito.PowerMockito.mock;
 public class ElementMock implements TypeElement {
     private final String qualifiedName;
     private final ElementKind kind;
-    private final List<AnnotationMirror> annotations = new ArrayList<>();
+    private final List<AnnotationMirror> annotations;
+    private final ExecutableType type;
+    private final List<TypeMirror> parameters;
 
-    public ElementMock(String qualifiedName, ElementKind kind, AnnotationMirror... annotations) {
+    public ElementMock(String qualifiedName, ElementKind kind, TypeKind type) {
         this.qualifiedName = qualifiedName;
         this.kind = kind;
+        this.type = mock(ExecutableType.class);
+        when(this.type.getKind()).thenReturn(type);
+        this.annotations = new ArrayList<>();
+        this.parameters = new ArrayList<>();
+    }
+
+    public ElementMock(String qualifiedName, ElementKind kind, TypeKind type, AnnotationMirror... annotations) {
+        this(qualifiedName, kind, type);
         Collections.addAll(this.annotations, annotations);
+    }
+
+    public ElementMock(String qualifiedName, ElementKind kind, TypeKind type, TypeMirror... parameters) {
+        this(qualifiedName, kind, type);
+        Collections.addAll(this.parameters, parameters);
+        //when(this.type.getParameterTypes()).thenReturn(this.parameters);
+        //getParameterTypes
     }
 
     @Override
     public TypeMirror asType() {
-        return null;
+        return type;
     }
 
     @Override
@@ -74,7 +95,7 @@ public class ElementMock implements TypeElement {
 
     @Override
     public Set<Modifier> getModifiers() {
-        return null;
+        return new HashSet<>(0);
     }
 
     @Override

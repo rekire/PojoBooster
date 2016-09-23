@@ -23,9 +23,9 @@ public class ProcessingEnvironmentMock implements ProcessingEnvironment {
     public final Map<String, String> options = new HashMap<>();
     public final Messager messager = mock(Messager.class);
     public final Filer filer = mock(Filer.class);
-    public final Elements elements = spy(new ElementUtils());
+    public final ElementUtils elements = spy(new ElementUtils());
     public final Types types = mock(Types.class);
-    public SourceVersion sourceVersion = SourceVersion.RELEASE_8;
+    public SourceVersion sourceVersion = SourceVersion.RELEASE_7;
 
     @Override
     public Map<String, String> getOptions() {

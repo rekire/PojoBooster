@@ -5,11 +5,16 @@
       <module fileurl="file://$PROJECT_DIR$/PojoBooster.iml" filepath="$PROJECT_DIR$/PojoBooster.iml" />
       <module fileurl="file://$PROJECT_DIR$/annotations/annotations.iml" filepath="$PROJECT_DIR$/annotations/annotations.iml" />
       <module fileurl="file://$PROJECT_DIR$/examples/app/app.iml" filepath="$PROJECT_DIR$/examples/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/examples/app/app.iml" filepath="$PROJECT_DIR$/examples/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/examples/examples.iml" filepath="$PROJECT_DIR$/examples/examples.iml" />
       <module fileurl="file://$PROJECT_DIR$/examples/examples.iml" filepath="$PROJECT_DIR$/examples/examples.iml" />
       <module fileurl="file://$PROJECT_DIR$/examples/java/java.iml" filepath="$PROJECT_DIR$/examples/java/java.iml" />
+      <module fileurl="file://$PROJECT_DIR$/examples/java/java.iml" filepath="$PROJECT_DIR$/examples/java/java.iml" />
+      <module fileurl="file://$PROJECT_DIR$/examples/library/library.iml" filepath="$PROJECT_DIR$/examples/library/library.iml" />
       <module fileurl="file://$PROJECT_DIR$/examples/library/library.iml" filepath="$PROJECT_DIR$/examples/library/library.iml" />
       <module fileurl="file://$PROJECT_DIR$/plugin/plugin.iml" filepath="$PROJECT_DIR$/plugin/plugin.iml" />
       <module fileurl="file://$PROJECT_DIR$/preprocessor/preprocessor.iml" filepath="$PROJECT_DIR$/preprocessor/preprocessor.iml" />
+      <module fileurl="file://$PROJECT_DIR$/unittests/unittests.iml" filepath="$PROJECT_DIR$/unittests/unittests.iml" />
       <module fileurl="file://$PROJECT_DIR$/unittests/unittests.iml" filepath="$PROJECT_DIR$/unittests/unittests.iml" />
     </modules>
   </component>
