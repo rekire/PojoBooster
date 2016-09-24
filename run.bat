@@ -6,5 +6,5 @@ echo [Done]
 echo.
 echo Testing...
 REM call gradlew :examplelibrary:generateDebugPojoBoosterStubs -q
-call gradlew :ex:aDeb :test:cJ -s
+call gradlew :ex:app:aDeb :ex:java:cJ -s
 
