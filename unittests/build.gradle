@@ -22,7 +22,8 @@ sourceSets.main.java.srcDirs = [
 sourceSets.test.java.srcDirs = [
         '../annotations/src/test/java/',
         '../plugin/src/test/groovy/',
-        '../preprocessor/src/test/java/'
+        '../preprocessor/src/test/java/',
+        '../unittests/src/shared/java/'
 ]
 
 // TODO catch the exception and help the user to find out what went wrong

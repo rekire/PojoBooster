@@ -7,12 +7,17 @@ configurations {
 }
 sourceSets {
     main { compileClasspath += configurations.provided }
+    test.java.srcDirs += '../unittests/src/shared/java/'
 }
 dependencies {
     provided 'org.robolectric:android-all:6.0.0_r1-robolectric-0'
     provided 'com.android.support:support-annotations:24.1.1'
     provided 'com.squareup:javapoet:1.7.0'
-    compile 'junit:junit:4.12'
+    testCompile 'junit:junit:4.12'
+    testCompile 'org.powermock:powermock-api-mockito:1.6.5'
+    testCompile 'org.powermock:powermock-module-junit4-rule-agent:1.6.5'
+    testCompile 'org.powermock:powermock-module-junit4-rule:1.6.5'
+    testCompile 'org.powermock:powermock-module-junit4:1.6.5'
 }
 
 task sourceJar(type: Jar) {
