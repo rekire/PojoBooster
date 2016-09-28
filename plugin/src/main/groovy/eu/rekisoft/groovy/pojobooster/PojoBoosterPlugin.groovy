@@ -12,11 +12,12 @@ class PojoBoosterPlugin implements Plugin<Project> {
 
     @Override
     void apply(Project project) {
-        project.configurations.create 'pojobooster'
+        project.configurations.maybeCreate 'pojobooster'
+        project.configurations.maybeCreate 'provided'
         project.extensions.create 'pojobooster', PojoBoosterPluginExtension
 
-        project.dependencies.add("compile", project.dependencies.create("eu.rekisoft.pojobooster:Annotations:$project.libVersion"))
-        project.dependencies.add("compile", project.dependencies.create("com.android.support:support-annotations:24.1.0"))
+        project.dependencies.add("provided", project.dependencies.create("eu.rekisoft.pojobooster:Annotations:$project.libVersion"))
+        project.dependencies.add("pojobooster", project.dependencies.create("com.android.support:support-annotations:24.1.0"))
         project.dependencies.add("pojobooster", project.dependencies.create("eu.rekisoft.pojobooster:Preprocessor:$project.libVersion"))
         project.dependencies.add("pojobooster", project.dependencies.create("com.squareup:javapoet:1.7.0"))
         project.dependencies.add("pojobooster", project.dependencies.create("org.robolectric:android-all:6.0.0_r1-robolectric-0"))
@@ -141,7 +142,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
                 project.tasks.clean.dependsOn project.deleteGeneratedCode
             }
             project.tasks[classTaskName].dependsOn stubTaskName
-            project.tasks.preBuild.dependsOn classTaskName
+            project.tasks["generate${variant.name.capitalize()}Sources"].dependsOn classTaskName
         }
     }
 
