@@ -142,7 +142,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
                 project.tasks.clean.dependsOn project.deleteGeneratedCode
             }
             project.tasks[classTaskName].dependsOn stubTaskName
-            project.tasks["generate${variant.name.capitalize()}Sources"].dependsOn classTaskName
+            project.tasks["generate${variant.name.capitalize()}Sources"].finalizedBy classTaskName
         }
     }
 
