@@ -52,7 +52,7 @@ public class JsonPacker extends Extension {
         method.addStatement("StringBuilder sb = new StringBuilder(\"{\")");
         String delimiter = "";
         for(AnnotatedClass.Member member : annotatedClass.members) {
-            String fieldName = (String) member.getAnnotatedProperty(Field.class, "value");
+            String fieldName = (String)member.getAnnotatedProperty(Field.class, "value");
             if(fieldName == null || fieldName.isEmpty()) {
                 fieldName = member.name;
             }
@@ -69,8 +69,10 @@ public class JsonPacker extends Extension {
     }
 
     private void addElementToJson(MethodSpec.Builder method, AnnotatedClass.Member member) {
-        String format = (String) member.getAnnotatedProperty(Formatter.class, "value");
+        String format = (String)member.getAnnotatedProperty(Formatter.class, "value");
         LocaleHelper locale = LocaleHelper.from(member);
+        // TODO when is the null check really required? -> when is "null" required and not null
+        // TODO add a policy to hide null values
         boolean needsNullCheck = /*!isInstanceOf(member, Number.class) && !isInstanceOf(member, Boolean.class) &&*/
                 !member.type.getKind().isPrimitive() && member.type.getKind() != TypeKind.ARRAY;
         if(needsNullCheck) {
@@ -144,9 +146,6 @@ public class JsonPacker extends Extension {
                 TypeName type = ClassName.get(SimpleDateFormat.class);
                 method.addStatement("$T $LFormatter = new $T($S, $L$T$L)", type, member.name, type, format, locale.prefix, locale.type, locale.suffix);
                 method.addStatement("sb.append($LFormatter.format($L))", member.name, member.name);
-            } else if(format != null && isInstanceOf(member, Number.class)) {
-                TypeName stringType = ClassName.get(String.class);
-                method.addStatement("sb.append($T.format($L$T$L, $S, $L))", stringType, locale.prefix, locale.type, locale.suffix, format, member.name);
             } else if(String.class.getName().equals(member.typeName)) {
                 // TODO mask the string (\ -> \\, " -> \")
                 method.addStatement("sb.append($L)", member.name);
