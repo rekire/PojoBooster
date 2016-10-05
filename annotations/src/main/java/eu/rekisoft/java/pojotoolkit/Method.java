@@ -25,7 +25,7 @@ public final class Method {
     }
 
     public boolean matchesTypes(Class<?> returnType, Class<?>... args) {
-        if(!this.returnType.toString().equals(returnType.getName())) {
+        if(!this.returnType.toString().equals(returnType.getName()) || this.args.size() != args.length) {
             return false;
         }
         if(this.args.size() == 0 && args.length == 0) {
