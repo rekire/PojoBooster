@@ -68,7 +68,7 @@ public class ParcelPacker extends Extension {
             String suffix = "";
             if(fieldKind == TypeKind.ARRAY) {
                 suffix = "Array";
-                fieldKind = ((ArrayType) member.type).getComponentType().getKind();
+                fieldKind = ((ArrayType)member.type).getComponentType().getKind();
             }
             String args = "";
             String type = null;
