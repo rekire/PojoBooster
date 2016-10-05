@@ -25,7 +25,8 @@ public class ElementUtils implements Elements {
     public ArrayList<Element> members = new ArrayList<>();
 
     public ElementUtils() {
-        members.add(new ElementMock("java.lang.String", ElementKind.FIELD, TypeKind.DECLARED));
+        members.add(new ElementMock("java.lang.String", ElementKind.FIELD, TypeKind.DECLARED,
+                new AnnotationMirrorMock(Override.class))); // This annotation does not make sense, but is important for code coverage
         members.add(new ElementMock("java.lang.String", ElementKind.METHOD, TypeKind.EXECUTABLE));
     }
 
