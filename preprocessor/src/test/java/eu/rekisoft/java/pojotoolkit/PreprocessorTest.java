@@ -1,5 +1,11 @@
 package eu.rekisoft.java.pojotoolkit;
 
+import android.support.annotation.NonNull;
+
+import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.TypeName;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -10,6 +16,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.net.URI;
@@ -19,15 +26,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 
 import eu.rekisoft.java.pojobooster.Enhance;
+import eu.rekisoft.java.pojobooster.FactoryOf;
 import eu.rekisoft.java.pojobooster.JsonDecorator;
 import eu.rekisoft.java.pojobooster.Serializer;
 import eu.rekisoft.java.pojotoolkit.testing.AnnotationMirrorMock;
@@ -36,11 +46,17 @@ import eu.rekisoft.java.pojotoolkit.testing.ProcessingEnvironmentMock;
 import eu.rekisoft.java.pojotoolkit.testing.RoundEnvironmentMock;
 import eu.rekisoft.java.pojotoolkit.testing.TypeMirrorMock;
 
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.powermock.api.mockito.PowerMockito.mock;
 import static org.powermock.api.mockito.PowerMockito.spy;
 import static org.powermock.api.mockito.PowerMockito.when;
 import static org.powermock.api.mockito.PowerMockito.whenNew;
+import static org.powermock.api.support.membermodification.MemberMatcher.constructor;
+import static org.powermock.api.support.membermodification.MemberModifier.suppress;
 
 /**
  * Created on 18.09.2016.
@@ -48,7 +64,7 @@ import static org.powermock.api.mockito.PowerMockito.whenNew;
  * @author René Kilczan
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest(BufferedWriter.class)
+@PrepareForTest({BufferedWriter.class, FileWriter.class, Preprocessor.class})
 public class PreprocessorTest {
     private Preprocessor sut;
     private ProcessingEnvironmentMock processingEnvironment;
@@ -57,6 +73,8 @@ public class PreprocessorTest {
     @Before
     public void setup() throws Exception {
         sut = new Preprocessor();
+        // suppress file creation
+        suppress(constructor(FileWriter.class, String.class));
         BufferedWriter writer = mock(BufferedWriter.class);
         whenNew(BufferedWriter.class).withAnyArguments().thenReturn(writer);
         File file = mock(File.class);
@@ -96,6 +114,21 @@ public class PreprocessorTest {
     }
 
     @Test
+    public void copyConstructorTest() {
+        processingEnvironment.options.put("target", "foo");
+        processingEnvironment.elements.members.clear();
+        ElementMock constructor = new ElementMock("<init>", ElementKind.CONSTRUCTOR, TypeKind.EXECUTABLE);
+        processingEnvironment.elements.members.add(constructor);
+        constructor.type.parameters.add(new TypeMirrorMock(int.class));
+        constructor.type.parameters.add(new TypeMirrorMock(String.class));
+        roundEnvironment.annotatedElements.put(Enhance.class.getName(),
+                createSet(new ElementMock("some.source.Class", ElementKind.CLASS, TypeKind.DECLARED,
+                        new AnnotationMirrorMock(Enhance.class, "name", "TargetClass"))));
+        sut.init(processingEnvironment);
+        sut.process(null, roundEnvironment);
+    }
+
+    @Test
     public void checkExtensionProcessing() {
         processingEnvironment.options.put("target", "foo");
         sut.init(processingEnvironment);
@@ -129,20 +162,22 @@ public class PreprocessorTest {
         sut.process(null, roundEnvironment);
     }
 
-    @Test//(expected = RuntimeException.class)
-    public void testExceptionHandling() {
-        when(processingEnvironment.getFiler()).thenThrow(new IOException("expected!"));
+    @Test(expected = RuntimeException.class)
+    public void testExceptionHandling() throws IOException {
+        when(processingEnvironment.filer.createSourceFile(any())).thenThrow(new IOException("expected!"));
+        sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
     }
 
     @Test
     public void checkJsonDecoratorProcessing() {
+        // prepare
         processingEnvironment.options.put("target", "foo");
         processingEnvironment.options.put("loglevel", "DEBUG");
-        sut.init(processingEnvironment);
         Set<Element> members = new HashSet<>(2);
         ExecutableElement element = mock(ExecutableElement.class);
         TypeMirror type = new TypeMirrorMock(int.class);
+        when(element.toString()).thenReturn("Bad");
         when(element.getReturnType()).thenReturn(type);
         when(element.getParameters()).thenAnswer(new Answer<List<VariableElement>>() {
             @Override
@@ -154,6 +189,7 @@ public class PreprocessorTest {
         element = mock(ExecutableElement.class);
         type = new TypeMirrorMock(String.class);
         when(element.getReturnType()).thenReturn(type);
+        when(element.toString()).thenReturn("Good");
         when(element.getParameters()).thenAnswer(new Answer<List<VariableElement>>() {
             @Override
             public List<VariableElement> answer(InvocationOnMock invocation) throws Throwable {
@@ -169,9 +205,42 @@ public class PreprocessorTest {
         members.add(element);
         roundEnvironment.annotatedElements.put(JsonDecorator.class.getName(), members);
         processingEnvironment.elements.members.clear();
-        //processingEnvironment.elements.members.add(new ElementMock("<init>", ElementKind.CONSTRUCTOR, TypeKind.EXECUTABLE));
-        //processingEnvironment.elements.members.add(new ElementMock("test", ElementKind.METHOD, TypeKind.EXECUTABLE));
+
+        // execute
+        sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
+
+        // verify
+        verify(processingEnvironment.messager, times(1)).printMessage(eq(Diagnostic.Kind.NOTE), eq("Yey Good this is fine!"));
+        verify(processingEnvironment.messager, times(1)).printMessage(eq(Diagnostic.Kind.ERROR), eq("No! Bad has the wrong args!"));
+    }
+
+    @Test
+    public void checkFactoryOfProcessing() {
+        // prepare
+        processingEnvironment.options.put("target", "foo");
+        processingEnvironment.options.put("loglevel", "DEBUG");
+        Set<Element> members = new HashSet<>(1);
+        Element element = mock(Element.class);
+        when(element.toString()).thenReturn("Mocked Element");
+        when(element.getAnnotationMirrors()).thenAnswer(new Answer<List<AnnotationMirror>>() {
+            @Override
+            public List<AnnotationMirror> answer(InvocationOnMock invocation) throws Throwable {
+                List<AnnotationMirror> list = new ArrayList<>(1);
+                list.add(new AnnotationMirrorMock(FactoryOf.class, "value", "example"));
+                return list;
+            }
+        });
+        members.add(element);
+        roundEnvironment.annotatedElements.put(FactoryOf.class.getName(), members);
+        processingEnvironment.elements.members.clear();
+
+        // execute
+        sut.init(processingEnvironment);
+        sut.process(null, roundEnvironment);
+
+        // verify
+        //verify(System.out).println(eq("type of java.lang.String"));
     }
 
     private Set<? extends Element> createSet(ElementMock... elementMocks) {

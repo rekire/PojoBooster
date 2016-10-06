@@ -1,5 +1,8 @@
 package eu.rekisoft.java.pojotoolkit.testing;
 
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.TypeName;
+
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +24,7 @@ public class TypeMirrorMock implements ExecutableType, ArrayType {
     private final TypeKind kind;
     private final TypeMirrorMock component;
     private final String name;
+    public final List<TypeMirror> parameters = new ArrayList<>(0);
 
     public TypeMirrorMock(Class<?> type) {
         if(type.isArray()) {
@@ -82,7 +86,28 @@ public class TypeMirrorMock implements ExecutableType, ArrayType {
 
     @Override
     public <R, P> R accept(TypeVisitor<R, P> v, P p) {
-        return null;
+        // This is very hacky but delivers proper results for ClassName.get(TypeMirror)
+        if(kind.isPrimitive()) {
+            switch (kind) {
+            case BOOLEAN:
+                return (R)TypeName.BOOLEAN;
+            case BYTE:
+                return (R)TypeName.BYTE;
+            case SHORT:
+                return (R)TypeName.SHORT;
+            case INT:
+                return (R)TypeName.INT;
+            case LONG:
+                return (R)TypeName.LONG;
+            case CHAR:
+                return (R)TypeName.CHAR;
+            case FLOAT:
+                return (R)TypeName.FLOAT;
+            case DOUBLE:
+                return (R)TypeName.DOUBLE;
+            }
+        }
+        return (R)ClassName.bestGuess(name);
     }
 
     @Override
@@ -112,7 +137,7 @@ public class TypeMirrorMock implements ExecutableType, ArrayType {
 
     @Override
     public List<? extends TypeMirror> getParameterTypes() {
-        return new ArrayList<>(0);
+        return parameters;
     }
 
     @Override

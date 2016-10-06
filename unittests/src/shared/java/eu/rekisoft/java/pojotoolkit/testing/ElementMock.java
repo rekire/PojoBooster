@@ -34,7 +34,7 @@ public class ElementMock implements TypeElement, ExecutableElement {
     private final String qualifiedName;
     private final ElementKind kind;
     private final List<AnnotationMirror> annotations;
-    private final TypeMirrorMock type;
+    public final TypeMirrorMock type;
     private final List<TypeMirror> parameters;
 
     public ElementMock(String qualifiedName, ElementKind kind, TypeKind type) {
