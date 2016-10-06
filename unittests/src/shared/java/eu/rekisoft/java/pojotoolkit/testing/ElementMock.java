@@ -8,14 +8,17 @@ import java.util.List;
 import java.util.Set;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.AnnotationValue;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ElementVisitor;
+import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
 import javax.lang.model.element.NestingKind;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
+import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
@@ -27,7 +30,7 @@ import static org.powermock.api.mockito.PowerMockito.mock;
  *
  * @author René Kilczan
  */
-public class ElementMock implements TypeElement {
+public class ElementMock implements TypeElement, ExecutableElement {
     private final String qualifiedName;
     private final ElementKind kind;
     private final List<AnnotationMirror> annotations;
@@ -107,6 +110,41 @@ public class ElementMock implements TypeElement {
 
     @Override
     public List<? extends TypeParameterElement> getTypeParameters() {
+        return null;
+    }
+
+    @Override
+    public TypeMirror getReturnType() {
+        return new TypeMirrorMock(String.class);
+    }
+
+    @Override
+    public List<? extends VariableElement> getParameters() {
+        return null;
+    }
+
+    @Override
+    public TypeMirror getReceiverType() {
+        return null;
+    }
+
+    @Override
+    public boolean isVarArgs() {
+        return false;
+    }
+
+    @Override
+    public boolean isDefault() {
+        return false;
+    }
+
+    @Override
+    public List<? extends TypeMirror> getThrownTypes() {
+        return null;
+    }
+
+    @Override
+    public AnnotationValue getDefaultValue() {
         return null;
     }
 

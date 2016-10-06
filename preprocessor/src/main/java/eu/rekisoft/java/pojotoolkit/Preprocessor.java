@@ -1,7 +1,6 @@
 package eu.rekisoft.java.pojotoolkit;
 
 import android.annotation.TargetApi;
-import android.support.annotation.VisibleForTesting;
 
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
@@ -81,7 +80,7 @@ public final class Preprocessor extends AbstractProcessor {
                 writer.close();
                 generationForPath.delete();
             } catch(IOException e) {
-
+                throw new RuntimeException("Cannot find the target directory", e);
             }
         }
 
@@ -121,7 +120,7 @@ public final class Preprocessor extends AbstractProcessor {
 
         for(Element elem : roundEnv.getElementsAnnotatedWith(JsonDecorator.class)) {
             Method method = Method.from((ExecutableElement)elem);
-            if(!method.matchesTypes(String.class, StringBuilder.class)) {
+            if(method.matchesTypes(String.class, StringBuilder.class)) {
                 processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "Yey " + elem + " this is fine!");
             } else {
                 processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "No! " + elem + " has the wrong args!");

@@ -3,29 +3,38 @@ package eu.rekisoft.java.pojotoolkit;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.IOException;
 import java.io.Writer;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.JavaFileObject;
 
 import eu.rekisoft.java.pojobooster.Enhance;
+import eu.rekisoft.java.pojobooster.JsonDecorator;
 import eu.rekisoft.java.pojobooster.Serializer;
 import eu.rekisoft.java.pojotoolkit.testing.AnnotationMirrorMock;
 import eu.rekisoft.java.pojotoolkit.testing.ElementMock;
 import eu.rekisoft.java.pojotoolkit.testing.ProcessingEnvironmentMock;
 import eu.rekisoft.java.pojotoolkit.testing.RoundEnvironmentMock;
+import eu.rekisoft.java.pojotoolkit.testing.TypeMirrorMock;
 
 import static org.mockito.Matchers.anyString;
 import static org.powermock.api.mockito.PowerMockito.mock;
@@ -117,6 +126,51 @@ public class PreprocessorTest {
         processingEnvironment.elements.members.clear();
         processingEnvironment.elements.members.add(new ElementMock("<init>", ElementKind.CONSTRUCTOR, TypeKind.EXECUTABLE));
         processingEnvironment.elements.members.add(new ElementMock("test", ElementKind.METHOD, TypeKind.EXECUTABLE));
+        sut.process(null, roundEnvironment);
+    }
+
+    @Test//(expected = RuntimeException.class)
+    public void testExceptionHandling() {
+        when(processingEnvironment.getFiler()).thenThrow(new IOException("expected!"));
+        sut.process(null, roundEnvironment);
+    }
+
+    @Test
+    public void checkJsonDecoratorProcessing() {
+        processingEnvironment.options.put("target", "foo");
+        processingEnvironment.options.put("loglevel", "DEBUG");
+        sut.init(processingEnvironment);
+        Set<Element> members = new HashSet<>(2);
+        ExecutableElement element = mock(ExecutableElement.class);
+        TypeMirror type = new TypeMirrorMock(int.class);
+        when(element.getReturnType()).thenReturn(type);
+        when(element.getParameters()).thenAnswer(new Answer<List<VariableElement>>() {
+            @Override
+            public List<VariableElement> answer(InvocationOnMock invocation) throws Throwable {
+                return new ArrayList<>(0);
+            }
+        });
+        members.add(element);
+        element = mock(ExecutableElement.class);
+        type = new TypeMirrorMock(String.class);
+        when(element.getReturnType()).thenReturn(type);
+        when(element.getParameters()).thenAnswer(new Answer<List<VariableElement>>() {
+            @Override
+            public List<VariableElement> answer(InvocationOnMock invocation) throws Throwable {
+                VariableElement element = mock(VariableElement.class);
+                TypeMirror type = mock(TypeMirror.class);
+                when(type.toString()).thenReturn(StringBuilder.class.getName());
+                when(element.asType()).thenReturn(type);
+                List<VariableElement> args = new ArrayList<>(1);
+                args.add(element);
+                return args;
+            }
+        });
+        members.add(element);
+        roundEnvironment.annotatedElements.put(JsonDecorator.class.getName(), members);
+        processingEnvironment.elements.members.clear();
+        //processingEnvironment.elements.members.add(new ElementMock("<init>", ElementKind.CONSTRUCTOR, TypeKind.EXECUTABLE));
+        //processingEnvironment.elements.members.add(new ElementMock("test", ElementKind.METHOD, TypeKind.EXECUTABLE));
         sut.process(null, roundEnvironment);
     }
 
