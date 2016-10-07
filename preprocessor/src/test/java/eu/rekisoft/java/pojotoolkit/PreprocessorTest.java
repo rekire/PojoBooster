@@ -4,6 +4,7 @@ import android.support.annotation.NonNull;
 
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeName;
 
@@ -11,6 +12,7 @@ import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.BDDMockito;
 import org.mockito.internal.matchers.Equals;
 import org.mockito.internal.progress.HandyReturnValues;
@@ -58,6 +60,8 @@ import eu.rekisoft.java.pojotoolkit.testing.TypeMirrorMock;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
@@ -100,39 +104,64 @@ public class PreprocessorTest {
 
     @Test
     public void simpleTestWithTargetAndNothingToProcess() {
+        // prepare
         processingEnvironment.options.put("target", "foo");
+
+        // execute
         sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
 
+        // verify
         assertNull(Whitebox.getInternalState(sut, "sourcePath"));
         assertEquals("foo", Whitebox.getInternalState(sut, "targetPath"));
     }
 
     @Test
     public void detectTargetPath() throws Exception {
+        // prepare
         JavaFileObject jfo = mock(JavaFileObject.class);
         when(processingEnvironment.filer.createSourceFile(anyString())).thenReturn(jfo);
         Writer w = mock(Writer.class);
         when(jfo.openWriter()).thenReturn(w);
         when(jfo.toUri()).thenReturn(new URI("/foo/bar"));
+
+        // execute
         sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
 
+        // verify
         assertEquals("/foo/bar", Whitebox.getInternalState(sut, "sourcePath"));
     }
 
     @Test
-    public void basicEnhanceAnnotationProcessing() {
+    public void basicEnhanceAnnotationProcessing() throws Exception {
+        // prepare
         processingEnvironment.options.put("target", "foo");
-        sut.init(processingEnvironment);
         roundEnvironment.annotatedElements.put(Enhance.class.getName(),
                 createSet(new ElementMock("some.source.Class", ElementKind.CLASS, TypeKind.DECLARED,
                         new AnnotationMirrorMock(Enhance.class, "name", "TargetClass", "extensions", new Class[0]))));
+        sut = spy(sut);
+
+        // execute
+        sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
+
+        // verify
+        final String outfile = "package some.source;\n" +
+                "\n" +
+                "public class TargetClass extends Class {\n" +
+                "    public TargetClass() {\n" +
+                "        super();\n" +
+                "    }\n" +
+                "}\n";
+        ArgumentCaptor<JavaFile> fileArg = ArgumentCaptor.forClass(JavaFile.class);
+        verifyPrivate(sut, times(1)).invoke("writeFile", eqPath("foo/some/source"), any(), fileArg.capture());
+        assertEquals(outfile, fileArg.getValue().toString());
     }
 
     @Test
-    public void copyConstructorTest() {
+    public void copyConstructorTest() throws Exception {
+        // prepare
         processingEnvironment.options.put("target", "foo");
         processingEnvironment.elements.members.clear();
         ElementMock constructor = new ElementMock("<init>", ElementKind.CONSTRUCTOR, TypeKind.EXECUTABLE);
@@ -142,34 +171,58 @@ public class PreprocessorTest {
         roundEnvironment.annotatedElements.put(Enhance.class.getName(),
                 createSet(new ElementMock("some.source.Class", ElementKind.CLASS, TypeKind.DECLARED,
                         new AnnotationMirrorMock(Enhance.class, "name", "TargetClass"))));
+        sut = spy(sut);
+
+        // execute
         sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
+
+        // verify
+        ArgumentCaptor<JavaFile> fileArg = ArgumentCaptor.forClass(JavaFile.class);
+        assertEquals(1, fileArg.getValue().typeSpec.methodSpecs.size());
+        MethodSpec method = fileArg.getValue().typeSpec.methodSpecs.get(0);
+        assertTrue(method.isConstructor());
+        assertEquals(2, method.parameters.size());
+        assertEquals(TypeName.INT, method.parameters.get(0).type);
+        assertEquals(ClassName.get(String.class), method.parameters.get(1).type);
     }
 
     @Test
     public void checkExtensionProcessing() {
+        // prepare
         processingEnvironment.options.put("target", "foo");
-        sut.init(processingEnvironment);
         roundEnvironment.annotatedElements.put(Enhance.class.getName(),
                 createSet(new ElementMock("some.source.Class", ElementKind.CLASS, TypeKind.DECLARED,
                         new AnnotationMirrorMock(Enhance.class, "name", "TargetClass", "extensions", new Class[] {Serializer.class}))));
+
+        // execute
+        sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
+
+        // verify
+
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void crashForWrongAnnotationOnConstructor() {
+        // prepare
         processingEnvironment.options.put("target", "foo");
-        sut.init(processingEnvironment);
         roundEnvironment.annotatedElements.put(Enhance.class.getName(),
                 createSet(new ElementMock("<init>", ElementKind.CONSTRUCTOR, TypeKind.EXECUTABLE)));
+
+        // execute
+        sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
+
+        // verify
+
     }
 
     @Test
     public void checkConstructorProcessing() {
+        // prepare
         processingEnvironment.options.put("target", "foo");
         processingEnvironment.options.put("loglevel", "DEBUG");
-        sut.init(processingEnvironment);
         Set<ElementMock> members = new HashSet<>(2);
         members.add(new ElementMock("some.source.Class", ElementKind.CLASS, TypeKind.DECLARED,
                 new AnnotationMirrorMock(Enhance.class, "name", "TargetClass", "extensions", new Class[] {Serializer.class})));
@@ -177,14 +230,26 @@ public class PreprocessorTest {
         processingEnvironment.elements.members.clear();
         processingEnvironment.elements.members.add(new ElementMock("<init>", ElementKind.CONSTRUCTOR, TypeKind.EXECUTABLE));
         processingEnvironment.elements.members.add(new ElementMock("test", ElementKind.METHOD, TypeKind.EXECUTABLE));
+
+        // execute
+        sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
+
+        // verify
+
     }
 
     @Test(expected = RuntimeException.class)
     public void testExceptionHandling() throws IOException {
+        // prepare
         when(processingEnvironment.filer.createSourceFile(any())).thenThrow(new IOException("expected!"));
+
+        // execute
         sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
+
+        // verify
+
     }
 
     @Test
@@ -263,6 +328,7 @@ public class PreprocessorTest {
 
     @Test
     public void testBrokenExtensionHandling() throws ClassNotFoundException {
+        // prepare
         PowerMockito.mockStatic(Class.class);
         BDDMockito.given(Class.forName(any())).willAnswer(new Answer<Class<?>>() {
             @Override
@@ -276,9 +342,12 @@ public class PreprocessorTest {
                 new AnnotationMirrorMock(Enhance.class, "name", "TargetClass", "extensions", new Class[] {Serializer.class})));
         roundEnvironment.annotatedElements.put(Enhance.class.getName(), members);
 
+        // execute
         sut.init(processingEnvironment);
         try {
             sut.process(null, roundEnvironment);
+            // verify
+            fail();
         } catch(RuntimeException e) {
             if(e.getCause() instanceof InstantiationException) {
                 assertEquals("Cannot load extension eu.rekisoft.java.pojotoolkit.Extension", e.getCause().getMessage());
@@ -290,6 +359,7 @@ public class PreprocessorTest {
 
     @Test
     public void testExtensionInit() throws ClassNotFoundException {
+        // prepare
         PowerMockito.mockStatic(Class.class);
         BDDMockito.given(Class.forName(any())).willAnswer(new Answer<Class<?>>() {
             @Override
@@ -304,16 +374,28 @@ public class PreprocessorTest {
                 new AnnotationMirrorMock(Enhance.class, "name", "TargetClass", "extensions", new Class[] {MockExtension.class})));
         roundEnvironment.annotatedElements.put(Enhance.class.getName(), members);
 
+        // execute
         sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
+
+        // verify
+        // TODO
+
+        // prepare
         processingEnvironment.options.remove("step");
+
+        // execute
         sut = new Preprocessor();
         sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
+
+        // verify
+        // TODO
     }
 
     @Test
     public void specialPathHandling() throws Exception {
+        // prepare
         JavaFileObject jfo = mock(JavaFileObject.class);
         when(processingEnvironment.filer.createSourceFile(anyString())).thenReturn(jfo);
         Writer w = mock(Writer.class);
@@ -323,14 +405,18 @@ public class PreprocessorTest {
                 createSet(new ElementMock("some.source.Class", ElementKind.CLASS, TypeKind.DECLARED,
                         new AnnotationMirrorMock(Enhance.class, "name", "TargetClass", "extensions", new Class[0]))));
         sut = spy(sut);
+
+        // execute
         sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
 
+        // verify
         verifyPrivate(sut, times(1)).invoke("writeFile", eqPath("/generated/source/pojo/some/source"), any(), any());
     }
 
     @Test
     public void specialPathHandling2() throws Exception {
+        // prepare
         JavaFileObject jfo = mock(JavaFileObject.class);
         when(processingEnvironment.filer.createSourceFile(anyString())).thenReturn(jfo);
         Writer w = mock(Writer.class);
@@ -340,14 +426,18 @@ public class PreprocessorTest {
                 createSet(new ElementMock("some.source.Class", ElementKind.CLASS, TypeKind.DECLARED,
                         new AnnotationMirrorMock(Enhance.class, "name", "TargetClass", "extensions", new Class[0]))));
         sut = spy(sut);
+
+        // execute
         sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
 
+        // verify
         verifyPrivate(sut, times(1)).invoke("writeFile", eqPath("/tmp/src/generated/some/source"), any(), any());
     }
 
     @Test
     public void specialPathHandling3() throws Exception {
+        // prepare
         JavaFileObject jfo = mock(JavaFileObject.class);
         when(processingEnvironment.filer.createSourceFile(anyString())).thenReturn(jfo);
         Writer w = mock(Writer.class);
@@ -357,27 +447,41 @@ public class PreprocessorTest {
                 createSet(new ElementMock("some.source.Class", ElementKind.CLASS, TypeKind.DECLARED,
                         new AnnotationMirrorMock(Enhance.class, "name", "TargetClass", "extensions", new Class[0]))));
         sut = spy(sut);
+
+        // execute
         sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
 
+        // verify
         verifyPrivate(sut, times(1)).invoke("writeFile", eqPath("/tmp/generated/source/pojo/some/source"), any(), any());
     }
 
     @Test
     public void testFileWriteExceptions() throws IOException {
+        // prepare
         processingEnvironment.options.put("target", "foo");
         roundEnvironment.annotatedElements.put(Enhance.class.getName(),
                 createSet(new ElementMock("some.source.Class", ElementKind.CLASS, TypeKind.DECLARED,
                         new AnnotationMirrorMock(Enhance.class, "name", "TargetClass", "extensions", new Class[0]))));
         Exception exception = spy(new IOException("Expected Crash!"));
         doThrow(exception).when(writer).close();
+
+        // execute
         sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
+
+        // verify
         verify(exception, times(1)).printStackTrace();
+
+        // prepare
         exception = spy(new StringIndexOutOfBoundsException("Expected Crash!"));
         doThrow(exception).when(writer).close();
+
+        // execute
         try {
             sut.process(null, roundEnvironment);
+            // verify
+            fail();
         } catch(RuntimeException e) {
             assertEquals("Expected Crash!", e.getCause().getMessage());
         }
