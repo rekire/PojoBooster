@@ -236,7 +236,11 @@ public final class Preprocessor extends AbstractProcessor {
             module = sourcePath.substring(0, sourcePath.indexOf("/build/classes/"));
             dir = module + "/src/generated/" + annotatedClass.targetType.packageName().replace(".", File.separator);
         } else {
-            module = sourcePath.substring(0, sourcePath.indexOf("/build/"));
+            if(sourcePath.contains("/build/")) {
+                module = sourcePath.substring(0, sourcePath.indexOf("/build/"));
+            } else {
+                module = "";
+            }
             dir = module + "/generated/source/pojo/" + annotatedClass.targetType.packageName().replace(".", File.separator);
         }
 

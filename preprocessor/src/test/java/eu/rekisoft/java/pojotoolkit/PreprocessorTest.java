@@ -2,6 +2,7 @@ package eu.rekisoft.java.pojotoolkit;
 
 import android.support.annotation.NonNull;
 
+import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeName;
@@ -15,11 +16,13 @@ import org.mockito.stubbing.Answer;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
+import org.powermock.reflect.Whitebox;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Serializable;
 import java.io.Writer;
 import java.net.URI;
 import java.util.ArrayList;
@@ -49,6 +52,7 @@ import eu.rekisoft.java.pojotoolkit.testing.RoundEnvironmentMock;
 import eu.rekisoft.java.pojotoolkit.testing.TypeMirrorMock;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
@@ -56,6 +60,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.powermock.api.mockito.PowerMockito.mock;
 import static org.powermock.api.mockito.PowerMockito.spy;
+import static org.powermock.api.mockito.PowerMockito.verifyPrivate;
 import static org.powermock.api.mockito.PowerMockito.when;
 import static org.powermock.api.mockito.PowerMockito.whenNew;
 import static org.powermock.api.support.membermodification.MemberMatcher.constructor;
@@ -75,7 +80,7 @@ public class PreprocessorTest {
 
     @Before
     public void setup() throws Exception {
-        sut = new Preprocessor();
+        sut = spy(new Preprocessor());
         // suppress file creation
         suppress(constructor(FileWriter.class, String.class));
         BufferedWriter writer = mock(BufferedWriter.class);
@@ -91,6 +96,9 @@ public class PreprocessorTest {
         processingEnvironment.options.put("target", "foo");
         sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
+
+        assertNull(Whitebox.getInternalState(sut, "sourcePath"));
+        assertEquals("foo", Whitebox.getInternalState(sut, "targetPath"));
     }
 
     @Test
@@ -103,7 +111,7 @@ public class PreprocessorTest {
         sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
 
-        // TODO verify the correct path
+        assertEquals("/foo/bar", Whitebox.getInternalState(sut, "sourcePath"));
     }
 
     @Test
@@ -291,6 +299,57 @@ public class PreprocessorTest {
 
         sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
+        processingEnvironment.options.put("step", "stub");
+        sut.process(null, roundEnvironment);
+    }
+
+    @Test
+    public void specialPathHandling() throws Exception {
+        JavaFileObject jfo = mock(JavaFileObject.class);
+        when(processingEnvironment.filer.createSourceFile(anyString())).thenReturn(jfo);
+        Writer w = mock(Writer.class);
+        when(jfo.openWriter()).thenReturn(w);
+        when(jfo.toUri()).thenReturn(new URI("/tmp/test/"));
+        roundEnvironment.annotatedElements.put(Enhance.class.getName(),
+                createSet(new ElementMock("some.source.Class", ElementKind.CLASS, TypeKind.DECLARED,
+                        new AnnotationMirrorMock(Enhance.class, "name", "TargetClass", "extensions", new Class[0]))));
+
+        sut.init(processingEnvironment);
+        sut.process(null, roundEnvironment);
+
+        verifyPrivate(sut, times(1)).invoke("writeFile", eq("/generated/source/pojo/some/source"), any(), any());
+    }
+
+    @Test
+    public void specialPathHandling2() throws Exception {
+        JavaFileObject jfo = mock(JavaFileObject.class);
+        when(processingEnvironment.filer.createSourceFile(anyString())).thenReturn(jfo);
+        Writer w = mock(Writer.class);
+        when(jfo.openWriter()).thenReturn(w);
+        when(jfo.toUri()).thenReturn(new URI("/tmp/build/classes/foo/"));
+        roundEnvironment.annotatedElements.put(Enhance.class.getName(),
+                createSet(new ElementMock("some.source.Class", ElementKind.CLASS, TypeKind.DECLARED,
+                        new AnnotationMirrorMock(Enhance.class, "name", "TargetClass", "extensions", new Class[0]))));
+        sut.init(processingEnvironment);
+        sut.process(null, roundEnvironment);
+
+        verifyPrivate(sut, times(1)).invoke("writeFile", eq("/tmp/src/generated/some/source"), any(), any());
+    }
+
+    @Test
+    public void specialPathHandling3() throws Exception {
+        JavaFileObject jfo = mock(JavaFileObject.class);
+        when(processingEnvironment.filer.createSourceFile(anyString())).thenReturn(jfo);
+        Writer w = mock(Writer.class);
+        when(jfo.openWriter()).thenReturn(w);
+        when(jfo.toUri()).thenReturn(new URI("/tmp/build/foo/"));
+        roundEnvironment.annotatedElements.put(Enhance.class.getName(),
+                createSet(new ElementMock("some.source.Class", ElementKind.CLASS, TypeKind.DECLARED,
+                        new AnnotationMirrorMock(Enhance.class, "name", "TargetClass", "extensions", new Class[0]))));
+        sut.init(processingEnvironment);
+        sut.process(null, roundEnvironment);
+
+        verifyPrivate(sut, times(1)).invoke("writeFile", eq("/tmp/generated/source/pojo/some/source"), any(), any());
     }
 
     private Set<? extends Element> createSet(ElementMock... elementMocks) {
@@ -313,13 +372,17 @@ public class PreprocessorTest {
         @NonNull
         @Override
         public List<TypeName> getAttentionalInterfaces() {
-            return new ArrayList<>(0);
+            List<TypeName> interfaces = new ArrayList<>(1);
+            interfaces.add(ClassName.get(Serializable.class));
+            return interfaces;
         }
 
         @NonNull
         @Override
         public List<FieldSpec> generateMembers() {
-            return new ArrayList<>(0);
+            List<FieldSpec> members = new ArrayList<>(1);
+            members.add(FieldSpec.builder(TypeName.INT, "number").build());
+            return members;
         }
 
         @NonNull
