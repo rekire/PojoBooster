@@ -179,6 +179,7 @@ public class PreprocessorTest {
 
         // verify
         ArgumentCaptor<JavaFile> fileArg = ArgumentCaptor.forClass(JavaFile.class);
+        verifyPrivate(sut, times(1)).invoke("writeFile", eqPath("foo/some/source"), any(), fileArg.capture());
         assertEquals(1, fileArg.getValue().typeSpec.methodSpecs.size());
         MethodSpec method = fileArg.getValue().typeSpec.methodSpecs.get(0);
         assertTrue(method.isConstructor());
@@ -188,22 +189,6 @@ public class PreprocessorTest {
     }
 
     @Test
-    public void checkExtensionProcessing() {
-        // prepare
-        processingEnvironment.options.put("target", "foo");
-        roundEnvironment.annotatedElements.put(Enhance.class.getName(),
-                createSet(new ElementMock("some.source.Class", ElementKind.CLASS, TypeKind.DECLARED,
-                        new AnnotationMirrorMock(Enhance.class, "name", "TargetClass", "extensions", new Class[] {Serializer.class}))));
-
-        // execute
-        sut.init(processingEnvironment);
-        sut.process(null, roundEnvironment);
-
-        // verify
-
-    }
-
-    @Test(expected = IllegalArgumentException.class)
     public void crashForWrongAnnotationOnConstructor() {
         // prepare
         processingEnvironment.options.put("target", "foo");
@@ -212,14 +197,18 @@ public class PreprocessorTest {
 
         // execute
         sut.init(processingEnvironment);
-        sut.process(null, roundEnvironment);
-
-        // verify
-
+        try {
+            sut.process(null, roundEnvironment);
+            // verify
+            fail();
+        } catch(IllegalArgumentException e) {
+            assertEquals("No class was annotated", e.getMessage());
+        }
     }
 
     @Test
-    public void checkConstructorProcessing() {
+    @SuppressWarnings("rawtypes")
+    public void checkConstructorProcessing() throws Exception {
         // prepare
         processingEnvironment.options.put("target", "foo");
         processingEnvironment.options.put("loglevel", "DEBUG");
@@ -230,26 +219,38 @@ public class PreprocessorTest {
         processingEnvironment.elements.members.clear();
         processingEnvironment.elements.members.add(new ElementMock("<init>", ElementKind.CONSTRUCTOR, TypeKind.EXECUTABLE));
         processingEnvironment.elements.members.add(new ElementMock("test", ElementKind.METHOD, TypeKind.EXECUTABLE));
+        sut = spy(sut);
 
         // execute
         sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
 
         // verify
-
+        ArgumentCaptor<List<Element>> methodArg = ArgumentCaptor.forClass((Class) List.class);
+        ArgumentCaptor<List<Element>> constructorArg = ArgumentCaptor.forClass((Class) List.class);
+        verifyPrivate(sut, times(1)).invoke("collectInfo", any(), any(), any(), methodArg.capture(), constructorArg.capture());
+        assertEquals(1, methodArg.getValue().size());
+        assertEquals(ElementKind.METHOD, methodArg.getValue().get(0).getKind());
+        assertEquals("test", methodArg.getValue().get(0).toString());
+        assertEquals(1, constructorArg.getValue().size());
+        assertEquals(ElementKind.CONSTRUCTOR, constructorArg.getValue().get(0).getKind());
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void testExceptionHandling() throws IOException {
         // prepare
         when(processingEnvironment.filer.createSourceFile(any())).thenThrow(new IOException("expected!"));
 
         // execute
         sut.init(processingEnvironment);
-        sut.process(null, roundEnvironment);
-
-        // verify
-
+        try {
+            sut.process(null, roundEnvironment);
+            // verify
+            fail();
+        } catch(RuntimeException e) {
+            assertEquals("Cannot find the target directory", e.getMessage());
+            assertEquals("expected!", e.getCause().getMessage());
+        }
     }
 
     @Test
@@ -323,6 +324,7 @@ public class PreprocessorTest {
         sut.process(null, roundEnvironment);
 
         // verify
+        // TODO
         //verify(System.out).println(eq("type of java.lang.String"));
     }
 
