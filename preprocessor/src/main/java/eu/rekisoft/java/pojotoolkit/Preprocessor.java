@@ -194,7 +194,7 @@ public final class Preprocessor extends AbstractProcessor {
                 extensions[i++] = impl;
                 annotatedClass.interfaces.addAll(impl.getAttentionalInterfaces());
             } catch(ReflectiveOperationException e) {
-                e.printStackTrace();
+                throw new RuntimeException(new InstantiationException("Cannot load extension " + extension.getName()));
             }
         }
 

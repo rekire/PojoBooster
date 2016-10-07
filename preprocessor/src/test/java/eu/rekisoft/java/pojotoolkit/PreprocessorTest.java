@@ -9,8 +9,10 @@ import com.squareup.javapoet.TypeName;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.BDDMockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
@@ -46,6 +48,7 @@ import eu.rekisoft.java.pojotoolkit.testing.ProcessingEnvironmentMock;
 import eu.rekisoft.java.pojotoolkit.testing.RoundEnvironmentMock;
 import eu.rekisoft.java.pojotoolkit.testing.TypeMirrorMock;
 
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
@@ -64,7 +67,7 @@ import static org.powermock.api.support.membermodification.MemberModifier.suppre
  * @author René Kilczan
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({BufferedWriter.class, FileWriter.class, Preprocessor.class})
+@PrepareForTest({BufferedWriter.class, FileWriter.class, Preprocessor.class, Class.class})
 public class PreprocessorTest {
     private Preprocessor sut;
     private ProcessingEnvironmentMock processingEnvironment;
@@ -243,6 +246,53 @@ public class PreprocessorTest {
         //verify(System.out).println(eq("type of java.lang.String"));
     }
 
+    @Test
+    public void testBrokenExtensionHandling() throws ClassNotFoundException {
+        PowerMockito.mockStatic(Class.class);
+        BDDMockito.given(Class.forName(any())).willAnswer(new Answer<Class<?>>() {
+            @Override
+            public Class<?> answer(InvocationOnMock invocation) throws Throwable {
+                return Extension.class;
+            }
+        });
+        processingEnvironment.options.put("target", "foo");
+        Set<ElementMock> members = new HashSet<>(2);
+        members.add(new ElementMock("some.source.Class", ElementKind.CLASS, TypeKind.DECLARED,
+                new AnnotationMirrorMock(Enhance.class, "name", "TargetClass", "extensions", new Class[] {Serializer.class})));
+        roundEnvironment.annotatedElements.put(Enhance.class.getName(), members);
+
+        sut.init(processingEnvironment);
+        try {
+            sut.process(null, roundEnvironment);
+        } catch(RuntimeException e) {
+            if(e.getCause() instanceof InstantiationException) {
+                assertEquals("Cannot load extension eu.rekisoft.java.pojotoolkit.Extension", e.getCause().getMessage());
+            } else {
+                throw e;
+            }
+        }
+    }
+
+    @Test
+    public void testExtensionInit() throws ClassNotFoundException {
+        PowerMockito.mockStatic(Class.class);
+        BDDMockito.given(Class.forName(any())).willAnswer(new Answer<Class<?>>() {
+            @Override
+            public Class<?> answer(InvocationOnMock invocation) throws Throwable {
+                return MockExtension.class;
+            }
+        });
+        processingEnvironment.options.put("target", "foo");
+        processingEnvironment.options.put("step", "stub");
+        Set<ElementMock> members = new HashSet<>(2);
+        members.add(new ElementMock("some.source.Class", ElementKind.CLASS, TypeKind.DECLARED,
+                new AnnotationMirrorMock(Enhance.class, "name", "TargetClass", "extensions", new Class[] {MockExtension.class})));
+        roundEnvironment.annotatedElements.put(Enhance.class.getName(), members);
+
+        sut.init(processingEnvironment);
+        sut.process(null, roundEnvironment);
+    }
+
     private Set<? extends Element> createSet(ElementMock... elementMocks) {
         Set<ElementMock> set = new HashSet<>(elementMocks.length);
         Collections.addAll(set, elementMocks);
@@ -253,5 +303,29 @@ public class PreprocessorTest {
         TypeMirror mirror = mock(TypeMirror.class);
         when(mirror.getKind()).thenReturn(kind);
         return mirror;
+    }
+
+    private static class MockExtension extends Extension {
+        public MockExtension(@NonNull ExtensionSettings settings) {
+            super(settings);
+        }
+
+        @NonNull
+        @Override
+        public List<TypeName> getAttentionalInterfaces() {
+            return new ArrayList<>(0);
+        }
+
+        @NonNull
+        @Override
+        public List<FieldSpec> generateMembers() {
+            return new ArrayList<>(0);
+        }
+
+        @NonNull
+        @Override
+        public List<MethodSpec> generateCode() {
+            return new ArrayList<>(0);
+        }
     }
 }
