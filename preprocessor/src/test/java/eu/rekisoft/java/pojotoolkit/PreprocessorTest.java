@@ -7,10 +7,15 @@ import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeName;
 
+import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.BDDMockito;
+import org.mockito.internal.matchers.Equals;
+import org.mockito.internal.progress.HandyReturnValues;
+import org.mockito.internal.progress.MockingProgress;
+import org.mockito.internal.progress.ThreadSafeMockingProgress;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.powermock.api.mockito.PowerMockito;
@@ -56,6 +61,7 @@ import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.powermock.api.mockito.PowerMockito.mock;
@@ -77,13 +83,14 @@ public class PreprocessorTest {
     private Preprocessor sut;
     private ProcessingEnvironmentMock processingEnvironment;
     private RoundEnvironmentMock roundEnvironment;
+    private BufferedWriter writer;
 
     @Before
     public void setup() throws Exception {
-        sut = spy(new Preprocessor());
+        sut = new Preprocessor();
         // suppress file creation
         suppress(constructor(FileWriter.class, String.class));
-        BufferedWriter writer = mock(BufferedWriter.class);
+        writer = mock(BufferedWriter.class);
         whenNew(BufferedWriter.class).withAnyArguments().thenReturn(writer);
         File file = mock(File.class);
         whenNew(File.class).withAnyArguments().thenReturn(file);
@@ -299,7 +306,9 @@ public class PreprocessorTest {
 
         sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
-        processingEnvironment.options.put("step", "stub");
+        processingEnvironment.options.remove("step");
+        sut = new Preprocessor();
+        sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
     }
 
@@ -313,11 +322,11 @@ public class PreprocessorTest {
         roundEnvironment.annotatedElements.put(Enhance.class.getName(),
                 createSet(new ElementMock("some.source.Class", ElementKind.CLASS, TypeKind.DECLARED,
                         new AnnotationMirrorMock(Enhance.class, "name", "TargetClass", "extensions", new Class[0]))));
-
+        sut = spy(sut);
         sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
 
-        verifyPrivate(sut, times(1)).invoke("writeFile", eq("/generated/source/pojo/some/source"), any(), any());
+        verifyPrivate(sut, times(1)).invoke("writeFile", eqPath("/generated/source/pojo/some/source"), any(), any());
     }
 
     @Test
@@ -330,10 +339,11 @@ public class PreprocessorTest {
         roundEnvironment.annotatedElements.put(Enhance.class.getName(),
                 createSet(new ElementMock("some.source.Class", ElementKind.CLASS, TypeKind.DECLARED,
                         new AnnotationMirrorMock(Enhance.class, "name", "TargetClass", "extensions", new Class[0]))));
+        sut = spy(sut);
         sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
 
-        verifyPrivate(sut, times(1)).invoke("writeFile", eq("/tmp/src/generated/some/source"), any(), any());
+        verifyPrivate(sut, times(1)).invoke("writeFile", eqPath("/tmp/src/generated/some/source"), any(), any());
     }
 
     @Test
@@ -346,10 +356,31 @@ public class PreprocessorTest {
         roundEnvironment.annotatedElements.put(Enhance.class.getName(),
                 createSet(new ElementMock("some.source.Class", ElementKind.CLASS, TypeKind.DECLARED,
                         new AnnotationMirrorMock(Enhance.class, "name", "TargetClass", "extensions", new Class[0]))));
+        sut = spy(sut);
         sut.init(processingEnvironment);
         sut.process(null, roundEnvironment);
 
-        verifyPrivate(sut, times(1)).invoke("writeFile", eq("/tmp/generated/source/pojo/some/source"), any(), any());
+        verifyPrivate(sut, times(1)).invoke("writeFile", eqPath("/tmp/generated/source/pojo/some/source"), any(), any());
+    }
+
+    @Test
+    public void testFileWriteExceptions() throws IOException {
+        processingEnvironment.options.put("target", "foo");
+        roundEnvironment.annotatedElements.put(Enhance.class.getName(),
+                createSet(new ElementMock("some.source.Class", ElementKind.CLASS, TypeKind.DECLARED,
+                        new AnnotationMirrorMock(Enhance.class, "name", "TargetClass", "extensions", new Class[0]))));
+        Exception exception = spy(new IOException("Expected Crash!"));
+        doThrow(exception).when(writer).close();
+        sut.init(processingEnvironment);
+        sut.process(null, roundEnvironment);
+        verify(exception, times(1)).printStackTrace();
+        exception = spy(new StringIndexOutOfBoundsException("Expected Crash!"));
+        doThrow(exception).when(writer).close();
+        try {
+            sut.process(null, roundEnvironment);
+        } catch(RuntimeException e) {
+            assertEquals("Expected Crash!", e.getCause().getMessage());
+        }
     }
 
     private Set<? extends Element> createSet(ElementMock... elementMocks) {
@@ -362,6 +393,28 @@ public class PreprocessorTest {
         TypeMirror mirror = mock(TypeMirror.class);
         when(mirror.getKind()).thenReturn(kind);
         return mirror;
+    }
+
+    public static String eqPath(String value) {
+        return PathEquals.reportMatcher(new PathEquals(value)).returnFor(value);
+    }
+
+    private static class PathEquals extends Equals {
+        static final MockingProgress MOCKING_PROGRESS = new ThreadSafeMockingProgress();
+
+        PathEquals(String wanted) {
+            super(wanted);
+        }
+
+        static HandyReturnValues reportMatcher(Matcher<?> matcher) {
+            return MOCKING_PROGRESS.getArgumentMatcherStorage().reportMatcher(matcher);
+        }
+
+        @Override
+        public boolean matches(Object actual) {
+            // This will change the Windows path style to the Linux style. On Linux this method just pass the value.
+            return super.matches(((String)actual).replace(File.separator, "/"));
+        }
     }
 
     private static class MockExtension extends Extension {
