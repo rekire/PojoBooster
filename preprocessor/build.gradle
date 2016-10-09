@@ -21,7 +21,7 @@ publishing {
     publications {
         mavenJava(MavenPublication) {
             groupId 'eu.rekisoft.pojobooster'
-            artifactId 'Preprocessor'
+            artifactId 'preprocessor'
             version project.libVersion
 
             from components.java

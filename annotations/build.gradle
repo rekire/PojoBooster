@@ -28,7 +28,7 @@ publishing {
     publications {
         mavenJava(MavenPublication) {
             groupId 'eu.rekisoft.pojobooster'
-            artifactId 'Annotations'
+            artifactId 'annotations'
             version project.libVersion
 
             from components.java

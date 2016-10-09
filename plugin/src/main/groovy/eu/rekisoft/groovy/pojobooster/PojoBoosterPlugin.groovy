@@ -9,6 +9,7 @@ import org.gradle.tooling.BuildException
 import javax.tools.*
 
 class PojoBoosterPlugin implements Plugin<Project> {
+    private static final String libVersion = '0.0.0'
 
     @Override
     void apply(Project project) {
@@ -16,9 +17,9 @@ class PojoBoosterPlugin implements Plugin<Project> {
         project.configurations.maybeCreate 'provided'
         project.extensions.create 'pojobooster', PojoBoosterPluginExtension
 
-        project.dependencies.add("provided", project.dependencies.create("eu.rekisoft.pojobooster:Annotations:$project.libVersion"))
+        project.dependencies.add("provided", project.dependencies.create("eu.rekisoft.pojobooster:annotations:$libVersion"))
         project.dependencies.add("pojobooster", project.dependencies.create("com.android.support:support-annotations:24.1.0"))
-        project.dependencies.add("pojobooster", project.dependencies.create("eu.rekisoft.pojobooster:Preprocessor:$project.libVersion"))
+        project.dependencies.add("pojobooster", project.dependencies.create("eu.rekisoft.pojobooster:preprocessor:$libVersion"))
         project.dependencies.add("pojobooster", project.dependencies.create("com.squareup:javapoet:1.7.0"))
         project.dependencies.add("pojobooster", project.dependencies.create("org.robolectric:android-all:6.0.0_r1-robolectric-0"))
 
@@ -100,7 +101,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
             androidExtension = project.plugins.getPlugin('com.android.library').extension
             variants = androidExtension.libraryVariants
         } else {
-            throw new BuildException("Something went wrong in the detection.")
+            throw new BuildException("Something went wrong in the detection.", null)
         }
 
         variants.all { variant ->
