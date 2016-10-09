@@ -1,5 +1,6 @@
 apply plugin: 'java'
 apply plugin: 'maven-publish'
+apply plugin: 'com.jfrog.bintray'
 
 configurations {
     provided
@@ -40,5 +41,48 @@ publishing {
     }
 }
 
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+//artifacts {
+//    archives javadocJar
+//    archives sourcesJar
+//}
+
+// Bintray
+
+//version = libraryVersion
+
+//Properties properties = new Properties()
+//properties.load(project.rootProject.file('local.properties').newDataInputStream())
+
+if(project.hasProperty('bintray.user') && false) {
+    bintray {
+        user = project.getProperty("bintray.user")
+        key = project.getProperty("bintray.apikey")
+
+        configurations = ['archives']
+        pkg {
+            repo = 'https://github.com/rekire/PojoBooster'
+            name = bintrayName
+            desc = libraryDescription
+            websiteUrl = siteUrl
+            vcsUrl = 'https://github.com/rekire/PojoBooster'
+            licenses = allLicenses
+            publish = true
+            publicDownloadNumbers = true
+            version {
+                desc = libraryDescription
+                gpg {
+                    sign = true //Determines whether to GPG sign the files. The default is false
+                    passphrase = project.getProperty("bintray.gpg.password")
+                    //Optional. The passphrase for GPG signing'
+                }
+            }
+        }
+    }
+}
 sourceCompatibility = "1.7"
 targetCompatibility = "1.7"
