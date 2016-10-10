@@ -1,1 +1,5 @@
-include ':annotations', ':preprocessor', ':plugin', ':unittests', ':examples:java', ':examples:app', ':examples:library'
+include ':annotations', ':preprocessor', ':plugin'
+if(!startParameter.projectProperties.from.equals("scratch") &&
+        !startParameter.taskRequests.args[0].contains('publishToMavenLocal')) {
+    include ':unittests', ':examples:java', ':examples:app', ':examples:library'
+}

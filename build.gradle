@@ -9,7 +9,9 @@ buildscript {
         // If you want to use always the newest gradle plugin create the file "~/.gradle/gradle.properties" with the content "bleedingEdge=true".
         // Be aware of the consequences, if you get trouble you can set the value to false to disable this behavior.
         classpath 'com.android.tools.build:gradle:' + (project.hasProperty('bleedingEdge') && "true".equals(project.bleedingEdge) ? '+' : project.gradlePluginVersion)
-        classpath "eu.rekisoft:pojobooster:$project.libVersion"
+        if(!this.properties['from'].equals("scratch")) {
+            classpath "eu.rekisoft:pojobooster:$project.libVersion"
+        }
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7'
 
         // NOTE: Do not place your application dependencies here; they belong
