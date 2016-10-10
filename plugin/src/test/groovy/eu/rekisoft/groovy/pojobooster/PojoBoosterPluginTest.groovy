@@ -125,19 +125,22 @@ public class PojoBoosterPluginTest {
                 "}\n" +
                 "repositories {\n" +
                 "    jcenter()\n" +
-                "    maven { url \"file://$sdkDir/extras/android/m2repository/\" }\n" +
-                "    maven { url \"file://$sdkDir/extras/google/m2repository/\" }\n" +
-                "    maven { url \"file://$sdkDir/extras/m2repository/\" }\n" +
                 "    mavenLocal()\n" +
                 "}\n" +
                 "apply plugin: 'java'\n" +
                 "apply plugin: 'eu.rekisoft.pojobooster'";
-        writeFile(buildFile, buildFileContent);
+        writeFile(buildFile, buildFileContent)
+        File sourceDir = new File(buildFile.absolutePath.replace("build.gradle", "src/main/java"))
+        sourceDir.mkdirs()
+        writeFile(new File(sourceDir, "Test.java"), "class Test {}");
 
         def result = GradleRunner.create()
                 .withProjectDir(testProjectDir.getRoot())
                 .withArguments("compileJava")
                 .build();
+
+        println sourceDir
+        Thread.sleep(15000)
 
         //assertTrue(result.output.contains("Hello world!"));
         assertEquals(result.task(":compileJava").getOutcome(), SUCCESS);

@@ -34,6 +34,14 @@ publishing {
 
             from components.java
 
+            pom.withXml {
+                def node = asNode()
+                def oldDep = node.dependencies
+                node.remove(oldDep)
+                def newDep = node.appendNode("dependencies")
+                newDep.append(oldDep.dependency[0])
+                newDep.append(oldDep.dependency[2])
+            }
             artifact sourceJar {
                 classifier "sources"
             }

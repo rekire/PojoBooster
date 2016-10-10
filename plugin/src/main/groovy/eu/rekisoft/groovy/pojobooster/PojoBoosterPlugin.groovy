@@ -18,7 +18,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
         project.extensions.create 'pojobooster', PojoBoosterPluginExtension
 
         project.dependencies.add("provided", project.dependencies.create("eu.rekisoft.pojobooster:annotations:$libVersion"))
-        project.dependencies.add("pojobooster", project.dependencies.create("com.android.support:support-annotations:24.1.0"))
+        //project.dependencies.add("pojobooster", project.dependencies.create("com.android.support:support-annotations:24.1.0"))
         project.dependencies.add("pojobooster", project.dependencies.create("eu.rekisoft.pojobooster:preprocessor:$libVersion"))
         project.dependencies.add("pojobooster", project.dependencies.create("com.squareup:javapoet:1.7.0"))
         project.dependencies.add("pojobooster", project.dependencies.create("org.robolectric:android-all:6.0.0_r1-robolectric-0"))
