@@ -3,21 +3,29 @@ package eu.rekisoft.groovy.pojobooster
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.ProjectConfigurationException
+import org.gradle.api.artifacts.Configuration
+import org.gradle.api.artifacts.Dependency
+import org.gradle.api.internal.CompositeDomainObjectSet
+import org.gradle.api.internal.artifacts.DefaultDependencySet
 import org.gradle.api.internal.artifacts.configurations.DefaultConfiguration
-import org.gradle.api.internal.tasks.DefaultSourceSet
+import org.gradle.api.internal.file.AbstractFileCollection
 import org.gradle.testfixtures.ProjectBuilder
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.tooling.BuildException
+import org.gradle.util.GUtil
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
+import org.mockito.BDDMockito
+import org.powermock.core.classloader.annotations.PrepareForTest
 import org.powermock.modules.junit4.PowerMockRunner
 
 import static org.gradle.testkit.runner.TaskOutcome.SUCCESS
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.fail
+import static org.mockito.Matchers.any
 import static org.mockito.Matchers.matches
 import static org.powermock.api.mockito.PowerMockito.*
 /**
@@ -26,7 +34,7 @@ import static org.powermock.api.mockito.PowerMockito.*
  * @author René Kilczan
  */
 @RunWith(PowerMockRunner.class)
-//@PrepareForTest(value = {PojoBoosterPlugin.class})
+@PrepareForTest(value = [PojoBoosterPlugin.class, GUtil.class, AbstractFileCollection.class])
 public class PojoBoosterPluginTest {
     private Project project
     private PojoBoosterPlugin plugin
@@ -40,10 +48,16 @@ public class PojoBoosterPluginTest {
 
         project = ProjectBuilder.builder().build()
         //configure the project directly with included jars to prevent going to the internet to load these
-        project.configurations {
-            pojobooster
-        }
-        project.getProperties()
+        //project.configurations {
+        //    pojobooster
+        //}
+
+        Configuration pojobooster = mock(Configuration.class)
+        when(pojobooster.getName()).thenReturn("pojobooster")
+        DefaultDependencySet dependencySet = new DefaultDependencySet("pojoDebs", CompositeDomainObjectSet.create(Dependency.class))
+        when(pojobooster.getDependencies()).thenReturn(dependencySet)
+        project.configurations.add(pojobooster)
+
         project.ext.libVersion = '0.0.0'
         /*
         project.dependencies {
@@ -52,7 +66,15 @@ public class PojoBoosterPluginTest {
                 jslint project.files(new File(it).absolutePath)
             }
         }//*/
-        plugin = new PojoBoosterPlugin()
+        plugin = new PojoBoosterPlugin() {
+            @Override
+            public Object getProperty(String property) {
+                if('javaCompile') {
+                    return new MockJavaCompile()
+                }
+                return super.getProperty(property)
+            }
+        }
     }
 
     @Test
@@ -64,7 +86,7 @@ public class PojoBoosterPluginTest {
             def dependencies = config.allDependencies.asList()
             switch(config.name) {
             case 'pojobooster':
-                assertEquals(4, dependencies.size())
+                assertEquals(3, dependencies.size())
                 break;
             case 'provided':
                 assertEquals(1, dependencies.size())
@@ -106,42 +128,49 @@ public class PojoBoosterPluginTest {
         when(androidPlugin.extension).thenReturn(new ExtensionMock())
         project.plugins.add(androidPlugin)
         plugin.apply(project)
-        //project.evaluate()
+
+
+
+        mockStatic(GUtil.class)
+        BDDMockito.given(GUtil.asPath(any())).willReturn("/success/mocked/value")
+        BDDMockito.given(GUtil.isTrue(any())).willReturn(true)
+
         plugin.applyToAndroidProject(project)
     }
 
     @Test
     public void testHelloWorldTask() throws IOException {
-        String sdkDir = "G:/sdk";
-        String buildFileContent = "buildscript {\n" +
-                "    repositories {\n" +
-                "        jcenter()\n" +
-                "        mavenLocal()\n" +
-                "    }\n" +
-                "    dependencies {\n" +
-                "        classpath \"eu.rekisoft:pojobooster:0.0.0\"\n" +
-                //"        classpath \"eu.rekisoft:Pojobooster:$project.libVersion\"\n" +
-                "    }\n" +
-                "}\n" +
-                "repositories {\n" +
-                "    jcenter()\n" +
-                "    mavenLocal()\n" +
-                "}\n" +
-                "apply plugin: 'java'\n" +
-                "apply plugin: 'eu.rekisoft.pojobooster'";
+        String buildFileContent =
+"""buildscript {
+    repositories {
+        jcenter()
+        mavenLocal()
+    }
+    dependencies {
+        classpath 'eu.rekisoft:pojobooster:0.0.0'
+//      classpath "eu.rekisoft:Pojobooster:$project.libVersion"
+    }
+}
+repositories {
+    jcenter()
+    mavenLocal()
+}
+apply plugin: 'java'
+apply plugin: 'eu.rekisoft.pojobooster'""";
         writeFile(buildFile, buildFileContent)
         File sourceDir = new File(buildFile.absolutePath.replace("build.gradle", "src/main/java"))
         sourceDir.mkdirs()
-        writeFile(new File(sourceDir, "Test.java"), "class Test {}");
+        writeFile(new File(sourceDir, "Test.java"), "import eu.rekisoft.java.pojobooster.*;\n @Enhance(name = \"Foo\", extensions = JsonPacker.class) class Test { public int foo; }");
 
         def result = GradleRunner.create()
                 .withProjectDir(testProjectDir.getRoot())
                 .withArguments("compileJava")
                 .build();
 
-        println sourceDir
-        Thread.sleep(15000)
+        println testProjectDir
+        //Thread.sleep(15000)
 
+        println result.output
         //assertTrue(result.output.contains("Hello world!"));
         assertEquals(result.task(":compileJava").getOutcome(), SUCCESS);
     }
@@ -159,35 +188,34 @@ public class PojoBoosterPluginTest {
     }
 
     public static void all(Closure closure){
-        //closure.resolveStrategy = Closure.OWNER_FIRST
-        //closure.delegate = plugin
         closure.call(new VariantMock())
-        //println o
     }
 
     public static String getSourceSetName(VariantMock variant) {
         return variant.name
     }
 
-    private abstract static class AndroidPluginMock implements Plugin<Project> {
+    private static abstract class AndroidPluginMock implements Plugin<Project> {
         public ExtensionMock extension = new ExtensionMock()
     }
 
     private static class ExtensionMock {
         public final List<VariantMock> applicationVariants
         public final List<VariantMock> libraryVariants
-        public final DefaultSourceSet sourceSets
+        public final Map<String, Map<String, Map<String, String>>> sourceSets
 
         ExtensionMock() {
             applicationVariants = new AllList<>(1)
             applicationVariants.add(new VariantMock())
             libraryVariants = new AllList<>(1)
             libraryVariants.add(new VariantMock())
-            //sourceSets = new DefaultSourceSet("release", new DefaultSourceDirectorySetFactory(
-            //        null, null));
-                    //mock(FileResolver.class),
-                    //mock(DirectoryFileTreeFactory.class)));
-            //when(sourceSets[any()]).thenReturn()
+            sourceSets = new HashMap<>(1)
+            Map<String, String> java = new HashMap<>(1)
+            java.put("srcDirs", "nothing")
+            Map<String, Map<String, String>> sourceSet = new HashMap<>(1);
+            sourceSet.put("java", java)
+            sourceSets.put("release", sourceSet)
+            sourceSets.put("main", sourceSet)
         }
     }
     private static class VariantMock {
@@ -202,5 +230,8 @@ public class PojoBoosterPluginTest {
         public List<VariantMock> all() {
             return this;
         }
+    }
+    static class MockJavaCompile {
+        List<String> source = new ArrayList<>()
     }
 }
