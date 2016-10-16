@@ -3,6 +3,7 @@ package eu.rekisoft.groovy.pojobooster
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.ProjectConfigurationException
+import org.gradle.api.Task
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.internal.CompositeDomainObjectSet
@@ -18,15 +19,15 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
-import org.mockito.BDDMockito
 import org.powermock.core.classloader.annotations.PrepareForTest
 import org.powermock.modules.junit4.PowerMockRunner
 
 import static org.gradle.testkit.runner.TaskOutcome.SUCCESS
 import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertNotNull
+import static org.junit.Assert.assertTrue
 import static org.junit.Assert.fail
-import static org.mockito.Matchers.any
-import static org.mockito.Matchers.matches
+import static org.mockito.Matchers.*
 import static org.powermock.api.mockito.PowerMockito.*
 /**
  * Created on 08.10.2016.
@@ -38,6 +39,7 @@ import static org.powermock.api.mockito.PowerMockito.*
 public class PojoBoosterPluginTest {
     private Project project
     private PojoBoosterPlugin plugin
+    private DefaultDependencySet dependencySet
 
     @Rule public final TemporaryFolder testProjectDir = new TemporaryFolder();
     private File buildFile;
@@ -47,25 +49,15 @@ public class PojoBoosterPluginTest {
         buildFile = testProjectDir.newFile("build.gradle");
 
         project = ProjectBuilder.builder().build()
-        //configure the project directly with included jars to prevent going to the internet to load these
-        //project.configurations {
-        //    pojobooster
-        //}
 
-        Configuration pojobooster = mock(Configuration.class)
+        Configuration pojobooster = mock(DefaultConfiguration.class)
         when(pojobooster.getName()).thenReturn("pojobooster")
-        DefaultDependencySet dependencySet = new DefaultDependencySet("pojoDebs", CompositeDomainObjectSet.create(Dependency.class))
+        dependencySet = new MockDependencies()
         when(pojobooster.getDependencies()).thenReturn(dependencySet)
         project.configurations.add(pojobooster)
 
-        project.ext.libVersion = '0.0.0'
-        /*
-        project.dependencies {
-            ['lib/jslint4java-1.4.4.jar', 'lib/jslint4java-ant-1.4.4.jar', 'lib/js-1.7R2.jar',
-             'lib/jcommander-1.11.jar'].each {
-                jslint project.files(new File(it).absolutePath)
-            }
-        }//*/
+        project.ext.libVersion = '0.0.0' // This value needs to be updated on every release
+
         plugin = new PojoBoosterPlugin() {
             @Override
             public Object getProperty(String property) {
@@ -83,20 +75,22 @@ public class PojoBoosterPluginTest {
         def configurations = project.configurations.asList()
         assertEquals(2, configurations.size())
         for(DefaultConfiguration config : configurations) {
-            def dependencies = config.allDependencies.asList()
+            def dependencies = config.dependencies
             switch(config.name) {
             case 'pojobooster':
                 assertEquals(3, dependencies.size())
+                assertTrue(config.dependencies.contains(project.dependencies.create("eu.rekisoft.pojobooster:preprocessor:$project.ext.libVersion")))
+                assertTrue(config.dependencies.contains(project.dependencies.create("com.squareup:javapoet:1.7.0")))
+                assertTrue(config.dependencies.contains(project.dependencies.create("org.robolectric:android-all:6.0.0_r1-robolectric-0")))
                 break;
             case 'provided':
                 assertEquals(1, dependencies.size())
+                assertTrue(config.dependencies.contains(project.dependencies.create("eu.rekisoft.pojobooster:annotations:$project.ext.libVersion")))
                 break;
             default:
                 throw new RuntimeException("Unexpected config")
             }
         }
-        //project.configurations.asList().get(0).allDependencies.asList().get(0).group
-        //assertThat(project.convention.plugins.pojobooster, instanceOf(PojoBoosterPlugin))
         try {
             project.evaluate()
             fail()
@@ -118,24 +112,60 @@ public class PojoBoosterPluginTest {
     }
 
     @Test
-    public void testAndroidProject() {
-        AndroidPluginMock androidPlugin = mock(AndroidPluginMock.class)
+    public void testAndroidAppProject() {
+        testAndroidProject('com.android.application')
+    }
 
+    @Test
+    public void testAndroidLibraryProject() {
+        testAndroidProject('com.android.library')
+    }
+
+    private void testAndroidProject(String pluginName) {
+        // prepare
+        AndroidPluginMock androidPlugin = mock(AndroidPluginMock.class)
         project = spy(project)
         def plugins = spy(project.plugins)
         when(project.plugins).thenReturn(plugins)
-        when(plugins.findPlugin(matches('com.android.application'))).thenReturn(androidPlugin)
+        when(plugins.findPlugin(matches(pluginName))).thenReturn(androidPlugin)
+        when(plugins.hasPlugin(matches(pluginName))).thenReturn(true)
         when(androidPlugin.extension).thenReturn(new ExtensionMock())
         project.plugins.add(androidPlugin)
+        Task base = project.task("generateFoobarSources") {}
+
+        // execute
         plugin.apply(project)
+        project.evaluate()
 
+        // verify
+        assertEquals('generateFoobarPojoBoosterClasses', base.finalizedBy.values[0].toString())
+        assertNotNull(project.tasks['generateFoobarPojoBoosterStubs'])
+        assertNotNull(project.tasks['generateFoobarPojoBoosterClasses'])
+    }
 
+    @Test
+    public void testJavaProject() {
+        // prepare
+        AndroidPluginMock javaPlugin = mock(AndroidPluginMock.class)
+        project = spy(project)
+        def plugins = spy(project.plugins)
+        when(project.plugins).thenReturn(plugins)
+        when(plugins.findPlugin(matches('java'))).thenReturn(javaPlugin)
+        when(plugins.hasPlugin(matches('java'))).thenReturn(true)
+        ExtensionMock extension = new ExtensionMock()
+        when(javaPlugin.extension).thenReturn(extension)
+        project.plugins.add(javaPlugin)
+        //when(project.getAt(matches("sourceSets"))).thenReturn(extension.sourceSets)
+        Task base = project.task("generateFoobarSources") {}
 
-        mockStatic(GUtil.class)
-        BDDMockito.given(GUtil.asPath(any())).willReturn("/success/mocked/value")
-        BDDMockito.given(GUtil.isTrue(any())).willReturn(true)
+        // execute
+        plugin.apply(project)
+        project.evaluate()
 
-        plugin.applyToAndroidProject(project)
+        // verify
+        assertEquals('generateFoobarPojoBoosterClasses', base.finalizedBy.values[0].toString())
+        assertNotNull(project.tasks['generateFoobarPojoBoosterStubs'])
+        assertNotNull(project.tasks['generateFoobarPojoBoosterClasses'])
     }
 
     @Test
@@ -168,10 +198,8 @@ apply plugin: 'eu.rekisoft.pojobooster'""";
                 .build();
 
         println testProjectDir
-        //Thread.sleep(15000)
 
         println result.output
-        //assertTrue(result.output.contains("Hello world!"));
         assertEquals(result.task(":compileJava").getOutcome(), SUCCESS);
     }
 
@@ -191,14 +219,9 @@ apply plugin: 'eu.rekisoft.pojobooster'""";
         closure.call(new VariantMock())
     }
 
-    public static String getSourceSetName(VariantMock variant) {
-        return variant.name
-    }
-
     private static abstract class AndroidPluginMock implements Plugin<Project> {
         public ExtensionMock extension = new ExtensionMock()
     }
-
     private static class ExtensionMock {
         public final List<VariantMock> applicationVariants
         public final List<VariantMock> libraryVariants
@@ -233,5 +256,28 @@ apply plugin: 'eu.rekisoft.pojobooster'""";
     }
     static class MockJavaCompile {
         List<String> source = new ArrayList<>()
+    }
+    private static class MockDependencies extends DefaultDependencySet {
+        List<Dependency> set = new ArrayList<>()
+
+        public MockDependencies() {
+            super("pojobooster", CompositeDomainObjectSet.create(Dependency.class))
+        }
+
+        public boolean add(Dependency dependency) {
+            return set.add(dependency)
+        }
+
+        public int size() {
+            return set.size()
+        }
+
+        public Iterator<Dependency> iterator() {
+            return set.iterator()
+        }
+
+        public boolean contains(Dependency dependency) {
+            return set.contains(dependency)
+        }
     }
 }
