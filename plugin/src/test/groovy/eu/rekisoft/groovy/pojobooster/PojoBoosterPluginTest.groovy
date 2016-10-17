@@ -54,6 +54,7 @@ public class PojoBoosterPluginTest {
         when(pojobooster.getName()).thenReturn("pojobooster")
         dependencySet = new MockDependencies()
         when(pojobooster.getDependencies()).thenReturn(dependencySet)
+        when(pojobooster.iterator()).thenReturn(new ArrayList<File>(0).iterator())
         project.configurations.add(pojobooster)
 
         project.ext.libVersion = '0.0.0' // This value needs to be updated on every release
@@ -156,16 +157,17 @@ public class PojoBoosterPluginTest {
         when(javaPlugin.extension).thenReturn(extension)
         project.plugins.add(javaPlugin)
         //when(project.getAt(matches("sourceSets"))).thenReturn(extension.sourceSets)
-        Task base = project.task("generateFoobarSources") {}
+        Task base = project.task("compileJava") {}
+        project.extensions.create 'sourceSets', JavaSourceSetMock
 
         // execute
         plugin.apply(project)
         project.evaluate()
 
         // verify
-        assertEquals('generateFoobarPojoBoosterClasses', base.finalizedBy.values[0].toString())
-        assertNotNull(project.tasks['generateFoobarPojoBoosterStubs'])
-        assertNotNull(project.tasks['generateFoobarPojoBoosterClasses'])
+        assertEquals('generatePojoBoosterClasses', base.dependsOn[0].toString())
+        assertNotNull(project.tasks['generatePojoBoosterStubs'])
+        assertNotNull(project.tasks['generatePojoBoosterClasses'])
     }
 
     @Test
@@ -279,5 +281,20 @@ apply plugin: 'eu.rekisoft.pojobooster'""";
         public boolean contains(Dependency dependency) {
             return set.contains(dependency)
         }
+    }
+    private static class JavaSourceSetMock {
+        public final Map<String, Object> main
+
+        JavaSourceSetMock() {
+            main = new HashMap<>(2);
+            main.put("java", new JavaConfigMock())
+            main.put("compileClasspath", new ArrayList<DefaultConfiguration>())
+        }
+    }
+    private static class JavaConfigMock {
+        public void setIncludes(String str) {}
+        public List<String> srcDirs = new ArrayList<>()
+        public List<File> includes = new ArrayList<>()
+
     }
 }
