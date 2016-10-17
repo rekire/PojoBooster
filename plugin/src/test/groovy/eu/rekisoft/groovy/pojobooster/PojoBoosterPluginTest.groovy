@@ -172,37 +172,13 @@ public class PojoBoosterPluginTest {
 
     @Test
     public void testHelloWorldTask() throws IOException {
-        String buildFileContent =
-"""buildscript {
-    repositories {
-        jcenter()
-        mavenLocal()
-    }
-    dependencies {
-        classpath 'eu.rekisoft:pojobooster:0.0.0'
-//      classpath "eu.rekisoft:Pojobooster:$project.libVersion"
-    }
-}
-repositories {
-    jcenter()
-    mavenLocal()
-}
-apply plugin: 'java'
-apply plugin: 'eu.rekisoft.pojobooster'""";
-        writeFile(buildFile, buildFileContent)
-        File sourceDir = new File(buildFile.absolutePath.replace("build.gradle", "src/main/java"))
-        sourceDir.mkdirs()
-        writeFile(new File(sourceDir, "Test.java"), "import eu.rekisoft.java.pojobooster.*;\n @Enhance(name = \"Foo\", extensions = JsonPacker.class) class Test { public int foo; }");
-
         def result = GradleRunner.create()
-                .withProjectDir(testProjectDir.getRoot())
-                .withArguments("compileJava")
+                .withProjectDir(new File(System.getProperty("user.dir")).getParentFile())
+                .withArguments(':examples:java:clean', ':examples:java:jar')
                 .build();
 
-        println testProjectDir
-
         println result.output
-        assertEquals(result.task(":compileJava").getOutcome(), SUCCESS);
+        assertEquals(SUCCESS, result.task(':examples:java:jar').getOutcome());
     }
 
     private void writeFile(File destination, String content) throws IOException {
