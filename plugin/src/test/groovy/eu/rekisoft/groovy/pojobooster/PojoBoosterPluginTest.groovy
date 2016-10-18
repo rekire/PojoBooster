@@ -22,13 +22,14 @@ import org.junit.runner.RunWith
 import org.powermock.core.classloader.annotations.PrepareForTest
 import org.powermock.modules.junit4.PowerMockRunner
 
+import java.util.zip.CRC32
+import java.util.zip.ZipFile
+
 import static org.gradle.testkit.runner.TaskOutcome.SUCCESS
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertNotNull
-import static org.junit.Assert.assertTrue
-import static org.junit.Assert.fail
-import static org.mockito.Matchers.*
+import static org.junit.Assert.*
+import static org.mockito.Matchers.matches
 import static org.powermock.api.mockito.PowerMockito.*
+
 /**
  * Created on 08.10.2016.
  *
@@ -41,7 +42,8 @@ public class PojoBoosterPluginTest {
     private PojoBoosterPlugin plugin
     private DefaultDependencySet dependencySet
 
-    @Rule public final TemporaryFolder testProjectDir = new TemporaryFolder();
+    @Rule
+    public final TemporaryFolder testProjectDir = new TemporaryFolder();
     private File buildFile;
 
     @Before
@@ -102,7 +104,7 @@ public class PojoBoosterPluginTest {
     }
 
     @Test
-    public void testDetetctionCrash() {
+    public void testDetectionCrash() {
         plugin.apply(project)
         try {
             plugin.applyToAndroidProject(project)
@@ -171,35 +173,80 @@ public class PojoBoosterPluginTest {
     }
 
     @Test
-    public void testHelloWorldTask() throws IOException {
+    public void compileExampleProjects() throws IOException {
+        // prepare
+        final String jar = ':examples:java:jar'
+        final String app = ':examples:app:assembleDebug'
+        final String lib = ':examples:library:assembleDebug'
+        final String cleanJar = ':examples:java:clean'
+        final String cleanApp = ':examples:app:clean'
+        final String cleanLib = ':examples:library:clean'
+        final File projectRoot = new File(System.getProperty("user.dir")).getParentFile()
+        final File jarOutput = new File(projectRoot, "examples/java/build/libs/java.jar")
+        final File appOutput = new File(projectRoot, "examples/app/build/outputs/apk/app-debug.apk")
+        final File libOutput = new File(projectRoot, "examples/library/build/outputs/aar/library-debug.aar")
+        jarOutput.delete()
+        appOutput.delete()
+        libOutput.delete()
+
+        // execute
         def result = GradleRunner.create()
-                .withProjectDir(new File(System.getProperty("user.dir")).getParentFile())
-                .withArguments(':examples:java:clean', ':examples:java:jar')
+                .withProjectDir(projectRoot)
+                .withArguments(cleanJar, jar, cleanApp, app, cleanLib, lib)
                 .build();
 
-        println result.output
-        assertEquals(SUCCESS, result.task(':examples:java:jar').getOutcome());
+        // verify
+        assertEquals(SUCCESS, result.task(jar).getOutcome());
+        assertEquals(SUCCESS, result.task(app).getOutcome());
+        assertEquals(SUCCESS, result.task(lib).getOutcome());
+
+        assertTrue("Java project output not found", jarOutput.exists())
+        assertTrue("Android app project output not found", appOutput.exists())
+        assertTrue("Android library project output not found", libOutput.exists())
+
+        ZipFile jarArchive = new ZipFile(jarOutput)
+        ZipFile appArchive = new ZipFile(appOutput)
+        ZipFile libArchive = new ZipFile(libOutput)
+        //assertTrue(jarArchive.size() > 2)
+        assertTrue(appArchive.size() > 3)
+        assertTrue(libArchive.size() > 3)
+
+
+        File libClasses = new File(projectRoot, "examples/library/build/intermediates/bundles/debug/classes.jar")
+        assertEquals(crcFile(libClasses), libArchive.getEntry("classes.jar").crc)
+    }
+
+    private static long crcFile(File file) {
+        InputStream inputStream = file.newInputStream()
+        CRC32 hash = new CRC32()
+        byte[] buffer = new byte[8192]
+        int bytesRead
+        while((bytesRead = inputStream.read(buffer)) != -1) {
+            hash.update(buffer, 0, bytesRead)
+        }
+        return hash.value
     }
 
     private void writeFile(File destination, String content) throws IOException {
-        BufferedWriter output = null;
+        BufferedWriter output = null
         try {
-            output = new BufferedWriter(new FileWriter(destination));
-            output.write(content);
+            output = new BufferedWriter(new FileWriter(destination))
+            output.write(content)
         } finally {
-            if (output != null) {
-                output.close();
+            if(output != null) {
+                output.close()
             }
         }
     }
 
-    public static void all(Closure closure){
+    public static void all(Closure closure) {
         closure.call(new VariantMock())
     }
 
     private static abstract class AndroidPluginMock implements Plugin<Project> {
         public ExtensionMock extension = new ExtensionMock()
     }
+
     private static class ExtensionMock {
         public final List<VariantMock> applicationVariants
         public final List<VariantMock> libraryVariants
@@ -213,28 +260,33 @@ public class PojoBoosterPluginTest {
             sourceSets = new HashMap<>(1)
             Map<String, String> java = new HashMap<>(1)
             java.put("srcDirs", "nothing")
-            Map<String, Map<String, String>> sourceSet = new HashMap<>(1);
+            Map<String, Map<String, String>> sourceSet = new HashMap<>(1)
             sourceSet.put("java", java)
             sourceSets.put("release", sourceSet)
             sourceSets.put("main", sourceSet)
         }
     }
+
     private static class VariantMock {
         String name = "foobar"
         String dirName = "release"
         String release = "what"
     }
+
     private static class AllList extends ArrayList<VariantMock> {
         AllList(int i) {
             super(i);
         }
+
         public List<VariantMock> all() {
             return this;
         }
     }
+
     static class MockJavaCompile {
         List<String> source = new ArrayList<>()
     }
+
     private static class MockDependencies extends DefaultDependencySet {
         List<Dependency> set = new ArrayList<>()
 
@@ -258,6 +310,7 @@ public class PojoBoosterPluginTest {
             return set.contains(dependency)
         }
     }
+
     private static class JavaSourceSetMock {
         public final Map<String, Object> main
 
@@ -267,6 +320,7 @@ public class PojoBoosterPluginTest {
             main.put("compileClasspath", new ArrayList<DefaultConfiguration>())
         }
     }
+
     private static class JavaConfigMock {
         public void setIncludes(String str) {}
         public List<String> srcDirs = new ArrayList<>()
