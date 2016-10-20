@@ -59,6 +59,13 @@ public class PojoBoosterPluginTest {
         when(pojobooster.iterator()).thenReturn(new ArrayList<File>(0).iterator())
         project.configurations.add(pojobooster)
 
+        Configuration compileOnly = mock(DefaultConfiguration.class)
+        when(compileOnly.getName()).thenReturn("compileOnly")
+        dependencySet = new MockDependencies()
+        when(compileOnly.getDependencies()).thenReturn(dependencySet)
+        when(compileOnly.iterator()).thenReturn(new ArrayList<File>(0).iterator())
+        project.configurations.add(compileOnly)
+
         project.ext.libVersion = '0.0.0' // This value needs to be updated on every release
 
         plugin = new PojoBoosterPlugin() {
@@ -76,7 +83,7 @@ public class PojoBoosterPluginTest {
     public void checkConfigurationsAndDependencies() {
         plugin.apply(project)
         def configurations = project.configurations.asList()
-        assertEquals(2, configurations.size())
+        assertEquals(3, configurations.size())
         for(DefaultConfiguration config : configurations) {
             def dependencies = config.dependencies
             switch(config.name) {
@@ -90,8 +97,11 @@ public class PojoBoosterPluginTest {
                 assertEquals(1, dependencies.size())
                 assertTrue(config.dependencies.contains(project.dependencies.create("eu.rekisoft.pojobooster:annotations:$project.ext.libVersion")))
                 break;
+            case 'compileOnly':
+                assertEquals(0, dependencies.size())
+                break;
             default:
-                throw new RuntimeException("Unexpected config")
+                fail("Unexpected config '$config.name'.")
             }
         }
         try {

@@ -17,10 +17,10 @@ class PojoBoosterPlugin implements Plugin<Project> {
         project.configurations.maybeCreate 'provided'
         project.extensions.create 'pojobooster', PojoBoosterPluginExtension
 
-        project.dependencies.add("provided", project.dependencies.create("eu.rekisoft.pojobooster:annotations:$libVersion"))
-        project.dependencies.add("pojobooster", project.dependencies.create("eu.rekisoft.pojobooster:preprocessor:$libVersion"))
-        project.dependencies.add("pojobooster", project.dependencies.create("com.squareup:javapoet:1.7.0"))
-        project.dependencies.add("pojobooster", project.dependencies.create("org.robolectric:android-all:6.0.0_r1-robolectric-0"))
+        project.dependencies.add('provided', project.dependencies.create("eu.rekisoft.pojobooster:annotations:$libVersion"))
+        project.dependencies.add('pojobooster', project.dependencies.create("eu.rekisoft.pojobooster:preprocessor:$libVersion"))
+        project.dependencies.add('pojobooster', project.dependencies.create("com.squareup:javapoet:1.7.0"))
+        project.dependencies.add('pojobooster', project.dependencies.create("org.robolectric:android-all:6.0.0_r1-robolectric-0"))
 
         project.afterEvaluate {
             if(project.plugins.hasPlugin('java')) {
@@ -35,6 +35,9 @@ class PojoBoosterPlugin implements Plugin<Project> {
     }
 
     def applyToJavaProject(project) {
+        project.configurations.maybeCreate 'compileOnly'
+        project.dependencies.add('compileOnly', project.dependencies.create("eu.rekisoft.pojobooster:annotations:$libVersion"))
+
         // add the required compile time libs to the classpath
         project.sourceSets.main.compileClasspath += project.configurations.pojobooster
 

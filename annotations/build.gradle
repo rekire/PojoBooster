@@ -39,6 +39,8 @@ publishing {
                 def oldDep = node.dependencies
                 node.remove(oldDep)
                 def newDep = node.appendNode("dependencies")
+                oldDep.dependency[0].scope*.value = 'provided'
+                oldDep.dependency[2].scope*.value = 'provided'
                 newDep.append(oldDep.dependency[0])
                 newDep.append(oldDep.dependency[2])
             }
