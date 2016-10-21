@@ -16,9 +16,7 @@ import org.gradle.tooling.BuildException
 import org.gradle.util.GUtil
 import org.junit.Before
 import org.junit.BeforeClass
-import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.powermock.core.classloader.annotations.PrepareForTest
 import org.powermock.modules.junit4.PowerMockRunner
@@ -30,7 +28,6 @@ import static org.gradle.testkit.runner.TaskOutcome.SUCCESS
 import static org.junit.Assert.*
 import static org.mockito.Matchers.matches
 import static org.powermock.api.mockito.PowerMockito.*
-
 /**
  * Created on 08.10.2016.
  *
@@ -44,9 +41,9 @@ public class PojoBoosterPluginTest {
     private DefaultDependencySet dependencySet
     private static File projectRoot
 
-    @Rule
-    public final TemporaryFolder testProjectDir = new TemporaryFolder();
-    private File buildFile;
+    //@Rule
+    //public final TemporaryFolder testProjectDir = new TemporaryFolder();
+    //private File buildFile;
 
     @BeforeClass
     public static void publishToLocalMavenRepo() {
@@ -66,8 +63,6 @@ public class PojoBoosterPluginTest {
 
     @Before
     public void setup() throws IOException {
-        buildFile = testProjectDir.newFile("build.gradle");
-
         project = ProjectBuilder.builder().build()
 
         Configuration pojobooster = mock(DefaultConfiguration.class)
@@ -187,16 +182,20 @@ public class PojoBoosterPluginTest {
         when(javaPlugin.extension).thenReturn(extension)
         project.plugins.add(javaPlugin)
         Task base = project.task("compileJava") {}
+        Task clean = project.task("clean") {}
         project.extensions.create 'sourceSets', JavaSourceSetMock
 
         // execute
         plugin.apply(project)
+        project.pojobooster.outputDirName = "foo/bar"
         project.evaluate()
 
         // verify
-        assertTrue(base.dependsOn.contains('generatePojoBoosterClasses'))
         assertNotNull(project.tasks['generatePojoBoosterStubs'])
         assertNotNull(project.tasks['generatePojoBoosterClasses'])
+        assertNotNull(project.tasks['deleteGeneratedCode'])
+        assertTrue(base.dependsOn.contains('generatePojoBoosterClasses'))
+        assertTrue(clean.dependsOn.contains(project.tasks['deleteGeneratedCode']))
     }
 
     @Test
@@ -237,7 +236,6 @@ public class PojoBoosterPluginTest {
         assertTrue(appArchive.size() > 3)
         assertTrue(libArchive.size() > 3)
 
-
         File libClasses = new File(projectRoot, "examples/library/build/intermediates/bundles/debug/classes.jar")
         assertEquals(crcFile(libClasses), libArchive.getEntry("classes.jar").crc)
     }
@@ -251,18 +249,6 @@ public class PojoBoosterPluginTest {
             hash.update(buffer, 0, bytesRead)
         }
         return hash.value
-    }
-
-    private void writeFile(File destination, String content) throws IOException {
-        BufferedWriter output = null
-        try {
-            output = new BufferedWriter(new FileWriter(destination))
-            output.write(content)
-        } finally {
-            if(output != null) {
-                output.close()
-            }
-        }
     }
 
     public static void all(Closure closure) {
