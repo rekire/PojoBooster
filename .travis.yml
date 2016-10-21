@@ -1,0 +1,29 @@
+language: android
+cache:
+  directories:
+    - $HOME/.m2
+    - $HOME/.gradle
+notifications:
+  email: false
+android:
+  components:
+    - tools
+    - tools
+    - platform-tools
+    - build-tools-24.0.1
+    - android-24
+  licenses:
+    - android-sdk-license-.+
+    - android-sdk-preview-license-.+
+    - google-gdk-license-.+
+script:
+  - mkdir "$ANDROID_HOME/licenses" || true
+  - echo -e "8933bad161af4178b1185d1a37fbf41ea5269c55" > "$ANDROID_HOME/licenses/android-sdk-license"
+  - echo -e "504667f4c0de7af1a06de9f4b1727b84351f2910" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
+  - ./gradlew check
+after_failure:
+  - cat /home/travis/build/rekire/CI-Playground/app/build/outputs/lint-results-debug.html
+jdk:
+  - oraclejdk8
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
