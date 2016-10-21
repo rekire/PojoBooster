@@ -15,6 +15,7 @@ import org.gradle.testkit.runner.GradleRunner
 import org.gradle.tooling.BuildException
 import org.gradle.util.GUtil
 import org.junit.Before
+import org.junit.BeforeClass
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -41,10 +42,27 @@ public class PojoBoosterPluginTest {
     private Project project
     private PojoBoosterPlugin plugin
     private DefaultDependencySet dependencySet
+    private static File projectRoot
 
     @Rule
     public final TemporaryFolder testProjectDir = new TemporaryFolder();
     private File buildFile;
+
+    @BeforeClass
+    public static void publishToLocalMavenRepo() {
+        projectRoot = new File(System.getProperty("user.dir")).getParentFile()
+
+        // execute
+        def result = GradleRunner.create()
+                .withProjectDir(projectRoot)
+                .withArguments('-Pfrom=scratch', 'publishToMavenLocal')
+                .build();
+
+        // verify
+        assertEquals(SUCCESS, result.task(':annotations:publishToMavenLocal').getOutcome());
+        assertEquals(SUCCESS, result.task(':plugin:publishToMavenLocal').getOutcome());
+        assertEquals(SUCCESS, result.task(':preprocessor:publishToMavenLocal').getOutcome());
+    }
 
     @Before
     public void setup() throws IOException {
@@ -168,7 +186,6 @@ public class PojoBoosterPluginTest {
         ExtensionMock extension = new ExtensionMock()
         when(javaPlugin.extension).thenReturn(extension)
         project.plugins.add(javaPlugin)
-        //when(project.getAt(matches("sourceSets"))).thenReturn(extension.sourceSets)
         Task base = project.task("compileJava") {}
         project.extensions.create 'sourceSets', JavaSourceSetMock
 
@@ -177,7 +194,7 @@ public class PojoBoosterPluginTest {
         project.evaluate()
 
         // verify
-        assertEquals('generatePojoBoosterClasses', base.dependsOn[0].toString())
+        assertTrue(base.dependsOn.contains('generatePojoBoosterClasses'))
         assertNotNull(project.tasks['generatePojoBoosterStubs'])
         assertNotNull(project.tasks['generatePojoBoosterClasses'])
     }
@@ -191,7 +208,6 @@ public class PojoBoosterPluginTest {
         final String cleanJar = ':examples:java:clean'
         final String cleanApp = ':examples:app:clean'
         final String cleanLib = ':examples:library:clean'
-        final File projectRoot = new File(System.getProperty("user.dir")).getParentFile()
         final File jarOutput = new File(projectRoot, "examples/java/build/libs/java.jar")
         final File appOutput = new File(projectRoot, "examples/app/build/outputs/apk/app-debug.apk")
         final File libOutput = new File(projectRoot, "examples/library/build/outputs/aar/library-debug.aar")
