@@ -1,6 +1,6 @@
 @echo off
 echo Publishing...
-call gradlew cle publishToMavenLocal -q
+call gradlew -Dfrom=scratch cle publishToMavenLocal -q
 if %errorlevel% neq 0 exit /b %errorlevel%
 echo [Done]
 echo.
