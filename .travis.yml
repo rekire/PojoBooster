@@ -3,6 +3,11 @@ cache:
   directories:
     - $HOME/.m2
     - $HOME/.gradle
+    - $HOME/.gradle/caches/2.14.1
+    - $HOME/.gradle/caches/jars-1
+    - $HOME/.gradle/daemon
+    - $HOME/.gradle/native
+    - $HOME/.gradle/wrapper
 notifications:
   email: false
 android:
@@ -10,8 +15,8 @@ android:
     - tools
     - tools
     - platform-tools
-    - build-tools-24.0.1
-    - android-24
+    - build-tools-25.0.0
+    - android-25
   licenses:
     - android-sdk-license-.+
     - android-sdk-preview-license-.+

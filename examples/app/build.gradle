@@ -21,14 +21,12 @@ android {
 }
 
 dependencies {
-    //compile fileTree(dir: 'libs', include: ['*.jar'])
     compile "com.android.support:appcompat-v7:$project.supportLibVersion"
-    compile 'com.android.support.constraint:constraint-layout:1.0.0-alpha4'
     provided project(':annotations')
     testCompile 'junit:junit:4.12'
-    androidTestCompile 'com.android.support.test.espresso:espresso-core:2.2.2'
-    androidTestCompile 'com.android.support.test:runner:0.5'
-    androidTestCompile "com.android.support:support-annotations:$project.supportLibVersion"
+    //androidTestCompile 'com.android.support.test.espresso:espresso-core:2.2.2'
+    //androidTestCompile 'com.android.support.test:runner:0.5'
+    //androidTestCompile "com.android.support:support-annotations:$project.supportLibVersion"
 
     compile "com.android.support:support-annotations:$project.supportLibVersion"
 }
