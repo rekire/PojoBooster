@@ -198,6 +198,7 @@ public class PojoBoosterPluginTest {
         assertTrue(clean.dependsOn.contains(project.tasks['deleteGeneratedCode']))
     }
 
+    @Ignore
     @Test
     public void compileExampleProjects() throws IOException {
         // prepare
