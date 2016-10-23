@@ -2,7 +2,6 @@ package eu.rekisoft.android.pojobooster;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import eu.rekisoft.android.pojobooster.R;
 
 public class MainActivity extends AppCompatActivity {
     @Override

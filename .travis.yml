@@ -3,11 +3,6 @@ cache:
   directories:
     - $HOME/.m2
     - $HOME/.gradle
-    - $HOME/.gradle/caches/2.14.1
-    - $HOME/.gradle/caches/jars-1
-    - $HOME/.gradle/daemon
-    - $HOME/.gradle/native
-    - $HOME/.gradle/wrapper
 notifications:
   email: false
 android:
