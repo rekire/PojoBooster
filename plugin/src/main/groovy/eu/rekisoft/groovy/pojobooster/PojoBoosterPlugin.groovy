@@ -52,7 +52,6 @@ class PojoBoosterPlugin implements Plugin<Project> {
 
         project.sourceSets.main.java.setIncludes(Arrays.asList(getOutputDir(project, null).path + File.separator + "**.*"))
 
-        String path = project.configurations.pojobooster.asPath
         def stubTaskName = "generatePojoBoosterStubs"
         def classTaskName = "generatePojoBoosterClasses"
         project.task(stubTaskName) {
@@ -61,6 +60,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
             inputs.file project.sourceSets.main.java.srcDirs
             outputs.dir getStubDir(project, null)
             doLast {
+                String path = project.configurations.pojobooster.asPath //+ File.pathSeparator + javaCompile.source.asPath
                 runPreprocessor(true, path, logger, null, project.sourceSets.main.java.srcDirs, project)
             }
         }
@@ -70,6 +70,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
             inputs.file getStubDir(project, null)
             outputs.dir getOutputDir(project, null)
             doLast {
+                String path = project.configurations.pojobooster.asPath //+ File.pathSeparator + javaCompile.source.asPath
                 runPreprocessor(false, path, logger, null, project.sourceSets.main.java.srcDirs, project)
             }
         }
@@ -111,7 +112,6 @@ class PojoBoosterPlugin implements Plugin<Project> {
             androidExtension.sourceSets[sourceSetName(variant)].java.srcDirs += generatedFilesDir
             javaCompile.source += generatedFilesDir
 
-            String path = project.configurations.pojobooster.asPath
             def stubTaskName = "generate${variant.name.capitalize()}PojoBoosterStubs"
             def classTaskName = "generate${variant.name.capitalize()}PojoBoosterClasses"
             project.task(stubTaskName) {
@@ -120,6 +120,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
                 //inputs.file androidExtension.sourceSets.main.java.srcDirs
                 //outputs.dir getStubDir(project, variant.name)
                 doLast {
+                    String path = project.configurations.pojobooster.asPath + File.pathSeparator + javaCompile.source.asPath
                     runPreprocessor(true, path, logger, variant.name, androidExtension.sourceSets.main.java.srcDirs, project)
                 }
             }
@@ -129,6 +130,7 @@ class PojoBoosterPlugin implements Plugin<Project> {
                 //inputs.file getStubDir(project, variant.name)
                 //outputs.dir getOutputDir(project, variant.name)
                 doLast {
+                    String path = project.configurations.pojobooster.asPath + File.pathSeparator + javaCompile.source.asPath
                     runPreprocessor(false, path, logger, variant.name, androidExtension.sourceSets.main.java.srcDirs, project)
                 }
             }
