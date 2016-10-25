@@ -117,8 +117,8 @@ class PojoBoosterPlugin implements Plugin<Project> {
             project.task(stubTaskName) {
                 group = "Code generation"
                 description = "Generated stubs for the ${variant.name} variant which will been replaced by $classTaskName."
-                inputs.file androidExtension.sourceSets.main.java.srcDirs
-                outputs.dir getStubDir(project, variant.name)
+                //inputs.file androidExtension.sourceSets.main.java.srcDirs
+                //outputs.dir getStubDir(project, variant.name)
                 doLast {
                     runPreprocessor(true, path, logger, variant.name, androidExtension.sourceSets.main.java.srcDirs, project)
                 }
@@ -126,8 +126,8 @@ class PojoBoosterPlugin implements Plugin<Project> {
             project.task(classTaskName) {
                 group = "Code generation"
                 description = "Generated classes for the ${variant.name} variant."
-                inputs.file getStubDir(project, variant.name)
-                outputs.dir getOutputDir(project, variant.name)
+                //inputs.file getStubDir(project, variant.name)
+                //outputs.dir getOutputDir(project, variant.name)
                 doLast {
                     runPreprocessor(false, path, logger, variant.name, androidExtension.sourceSets.main.java.srcDirs, project)
                 }
