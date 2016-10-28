@@ -1,4 +1,4 @@
-all: publish app
+all: publish check
 
 clean:
 	./gradlew cle -q
@@ -8,3 +8,6 @@ publish:
 
 app:
 	./gradlew clean :ex:app:aDeb :ex:lib:aDeb :ex:java:jar -s
+
+check:
+	./gradlew clean check -s
