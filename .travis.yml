@@ -23,10 +23,8 @@ script:
   - echo -e "504667f4c0de7af1a06de9f4b1727b84351f2910" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
   - echo "sdk.dir=$ANDROID_HOME" > local.properties
   - ./gradlew -Pfrom=scratch publishToMavenLocal
-  - ./gradlew check
+  - ./gradlew check --max-workers 1
 jdk:
   - oraclejdk8
 after_success:
   - bash <(curl -s https://codecov.io/bash)
-after_failure:
-- ls -laR examples/app/build/generated
