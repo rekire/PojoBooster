@@ -1,4 +1,7 @@
 language: android
+sudo: required
+os: linux
+dist: precise
 cache:
   directories:
     - $HOME/.m2
