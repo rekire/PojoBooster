@@ -26,7 +26,8 @@ script:
   - echo -e "504667f4c0de7af1a06de9f4b1727b84351f2910" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
   - echo "sdk.dir=$ANDROID_HOME" > local.properties
   - ./gradlew -Pfrom=scratch publishToMavenLocal
-  - ./gradlew :ex:app:processDebugResources :ex:app:processReleaseResources check --max-workers 1
+  - ./gradlew --continue :examples:app:compileDebugJavaWithJavac :examples:app:compileReleaseJavaWithJavac || echo "Workaround"
+  - ./gradlew check --max-workers 1
 jdk:
   - oraclejdk8
 after_success:
