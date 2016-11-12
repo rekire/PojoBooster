@@ -1,5 +1,6 @@
 apply plugin: 'java'
 apply plugin: 'maven-publish'
+apply plugin: 'jacoco'
 
 dependencies {
     compile project(':annotations')
@@ -35,3 +36,12 @@ publishing {
 
 sourceCompatibility = "1.8"
 targetCompatibility = "1.8"
+
+jacocoTestReport {
+    reports {
+        xml.enabled = true
+        html.enabled = true
+    }
+}
+
+check.dependsOn jacocoTestReport
