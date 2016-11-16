@@ -1,0 +1,39 @@
+apply plugin: 'jacoco'
+
+jacocoTestReport {
+    reports {
+        xml.enabled = true
+        html.enabled = true
+    }
+}
+
+check.dependsOn jacocoTestReport
+
+// Author: Daniel Atallah (https://discuss.gradle.org/t/jacoco-offline-instrumentation-in-gradle/9996/2)
+//Additional SourceSets can be added to the jacocoOfflineSourceSets as needed by
+project.ext.jacocoOfflineSourceSets = [ 'main' ]
+task doJacocoOfflineInstrumentation(dependsOn: [ classes, project.configurations.jacocoAnt ]) {
+    inputs.files classes.outputs.files
+    File outputDir = new File(project.buildDir, 'instrumentedClasses')
+    outputs.dir outputDir
+    doFirst {
+        project.delete(outputDir)
+        ant.taskdef(
+                resource: 'org/jacoco/ant/antlib.xml',
+                classpath: project.configurations.jacocoAnt.asPath,
+                uri: 'jacoco'
+        )
+        jacocoOfflineSourceSets.each { sourceSetName ->
+            if (file(sourceSets[sourceSetName].output.classesDir).exists()) {
+                def instrumentedClassedDir = "${outputDir}/${sourceSetName}"
+                ant.'jacoco:instrument'(destdir: instrumentedClassedDir) {
+                    fileset(dir: sourceSets[sourceSetName].output.classesDir, includes: '**/*.class')
+                }
+                //Replace the classes dir in the test classpath with the instrumented one
+                sourceSets.test.runtimeClasspath -= files(sourceSets[sourceSetName].output.classesDir)
+                sourceSets.test.runtimeClasspath += files(instrumentedClassedDir)
+            }
+        }
+    }
+}
+test.dependsOn doJacocoOfflineInstrumentation
