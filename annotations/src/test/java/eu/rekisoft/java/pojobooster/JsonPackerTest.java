@@ -7,28 +7,46 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
+import org.powermock.reflect.Whitebox;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 
 import javax.lang.model.element.AnnotationValue;
+import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
 import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
+import javax.tools.Diagnostic;
 
 import eu.rekisoft.java.pojotoolkit.AnnotatedClass;
+import eu.rekisoft.java.pojotoolkit.Extension;
+import eu.rekisoft.java.pojotoolkit.ExtensionSettings;
 import eu.rekisoft.java.pojotoolkit.JsonWriter;
+import eu.rekisoft.java.pojotoolkit.Method;
 import eu.rekisoft.java.pojotoolkit.SettingsFactory;
 import eu.rekisoft.java.pojotoolkit.testing.ProcessingEnvironmentMock;
 import eu.rekisoft.java.pojotoolkit.testing.TypeMirrorMock;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.powermock.api.mockito.PowerMockito.mock;
+import static org.powermock.api.mockito.PowerMockito.spy;
+import static org.powermock.api.mockito.PowerMockito.verifyPrivate;
 import static org.powermock.api.mockito.PowerMockito.when;
 
 /**
@@ -71,6 +89,10 @@ public class JsonPackerTest {
         field.put(mockElement("value"), mockValue("alias"));
         annotations.put(Field.class.getName(), field);
         members.add(createMember(annotations, float.class, "number"));
+        Map<ExecutableElement, AnnotationValue> emptyAlias = new HashMap<>(1);
+        emptyAlias.put(mockElement(""), mockValue("alias"));
+        annotations.put(Field.class.getName(), emptyAlias);
+        members.add(createMember(annotations, boolean.class, "noAlias"));
 
         // execute
         JsonPacker sut = new JsonPacker(SettingsFactory.create(members, null, null, "DEBUG", null, false));
@@ -200,6 +222,80 @@ public class JsonPackerTest {
         assertEquals(1, methods.size());
         String method = methods.get(0).toString();
         assertTrue(method.contains("sb.append('\"').append(id.toString()).append('\"');"));
+    }
+
+    @Test
+    public void verifyDateProcessing() throws Exception {
+        JsonPacker sut = spy(new JsonPacker(mock(ExtensionSettings.class)) {
+            @Override
+            protected boolean isInstanceOf(AnnotatedClass.Member member, Class<?> clazz) {
+                return false;
+            }
+        });
+        java.lang.reflect.Method addElementToJson = Whitebox.getMethod(JsonPacker.class, "addElementToJson", MethodSpec.Builder.class, AnnotatedClass.Member.class);
+        MethodSpec.Builder method = MethodSpec
+                .methodBuilder("toJson")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(String.class);
+        AnnotatedClass.Member member = new AnnotatedClass.Member(
+                new HashMap<String, Map<? extends ExecutableElement, ? extends AnnotationValue>>(),
+                new TypeMirrorMock(String.class), "typeName", "name") {
+            @Override
+            public Object getAnnotatedProperty(Class<? extends Annotation> type, String field) {
+                return "";
+            }
+        };
+        addElementToJson.invoke(sut, method, member);
+        verifyPrivate(sut, times(1)).invoke("isInstanceOf", eq(member), eq(Date.class));
+    }
+
+    @Test
+    public void blah() throws Exception {
+        Map<String, Map<? extends ExecutableElement, ? extends AnnotationValue>> annotations = new HashMap<>();
+        AnnotatedClass.Member member = new AnnotatedClass.Member(annotations, new TypeMirrorMock(boolean.class), null, null) {
+            int run = 1;
+            @Override
+            public Object getAnnotatedProperty(Class<? extends Annotation> type, String field) {
+                switch(run++) {
+                case 1:
+                    return "";
+                case 2:
+                    return "x";
+                default:
+                    return null;
+                }
+            }
+        };
+        AnnotatedClass clazz = mock(AnnotatedClass.class);
+        Whitebox.setInternalState(clazz, "members", Collections.singletonList(member));
+        ExtensionSettings settings = mock(ExtensionSettings.class);
+        Whitebox.setInternalState(settings, "annotatedClass", clazz);
+        JsonPacker sut = spy(new JsonPacker(settings));
+        sut.generateCode();
+        sut.generateCode();
+        sut.generateCode();
+        //verifyPrivate(sut, times(1)).invoke("addElementToJson", any(), eq(member));
+    }
+
+    @Test
+    public void isDirectEmbeddableTest() throws InvocationTargetException, IllegalAccessException {
+        AnnotatedClass.Member number = new AnnotatedClass.Member(
+                new HashMap<String, Map<? extends ExecutableElement, ? extends AnnotationValue>>(),
+                new TypeMirrorMock(Number.class), "typeName", "name");
+        AnnotatedClass.Member bool = new AnnotatedClass.Member(
+                new HashMap<String, Map<? extends ExecutableElement, ? extends AnnotationValue>>(),
+                new TypeMirrorMock(Boolean.class), "typeName", "name");
+        ExtensionSettings settings = mock(ExtensionSettings.class);
+        JsonPacker sut = spy(new JsonPacker(settings) {
+            @Override
+            protected boolean isInstanceOf(AnnotatedClass.Member member, Class<?> clazz) {
+                return member.type.toString().equals(clazz.getName());
+            }
+        });
+        java.lang.reflect.Method isDirectEmbeddable = Whitebox.getMethod(JsonPacker.class, "isDirectEmbeddable", AnnotatedClass.Member.class);
+        assertTrue((boolean)isDirectEmbeddable.invoke(sut, number));
+        assertTrue((boolean)isDirectEmbeddable.invoke(sut, bool));
     }
 
     private AnnotatedClass.Member createMember(Map<String, Map<? extends ExecutableElement, ? extends AnnotationValue>> annotations,

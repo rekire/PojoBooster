@@ -135,7 +135,7 @@ public class JsonPacker extends Extension {
                 // TODO this here has to be a recursive call however no idea how.
             } else if(isInstanceOf(member, JsonWriter.class)) {
                 method.addStatement("sb.append($L.toJson())", member.name);
-            } else if(isInstanceOf(member, Number.class) || isInstanceOf(member, Boolean.class)) {
+            } else if(isDirectEmbeddable(member)) {
                 if(format == null) {
                     method.addStatement("sb.append($L)", member.name);
                 } else {
@@ -156,6 +156,10 @@ public class JsonPacker extends Extension {
         if(needsNullCheck) {
             method.endControlFlow();
         }
+    }
+
+    private boolean isDirectEmbeddable(AnnotatedClass.Member member) {
+        return isInstanceOf(member, Number.class) || isInstanceOf(member, Boolean.class);
     }
 
     @NonNull
